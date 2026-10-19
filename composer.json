@@ -1,0 +1,7 @@
+{
+  "name": "eponymos/questionnaire",
+  "type": "wordpress-plugin",
+  "autoload": { "psr-4": { "Eponymos\\": "includes/" } },
+  "require": { "php": ">=7.4",
+    "mpdf/mpdf": "^8.3" }
+}

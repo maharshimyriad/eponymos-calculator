@@ -1,0 +1,54 @@
+/* submissions.css — loaded only on the Submissions page */
+/* Most styles now live in admin.css; this file reserved for future additions */
+.submission-bulk-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px 0;
+}
+.submission-bulk-actions label {
+    margin-right: auto;
+    color: #646970;
+    font-size: 13px;
+}
+.eponymos-submission-tabs {
+    margin: 16px 0 18px;
+}
+.eponymos-submission-tabs .nav-tab {
+    cursor: pointer;
+}
+.email-log-heading p,
+.email-log-status + p {
+    color: #646970;
+}
+.email-log-heading p {
+    margin-top: 0;
+}
+.email-log-status--accepted {
+    color: #008a20;
+}
+.email-log-status--failed {
+    color: #b32d2e;
+}
+.email-log-technical {
+    margin: 0;
+}
+.email-log-technical dt {
+    float: left;
+    clear: left;
+    width: 90px;
+    font-weight: 600;
+}
+.email-log-technical dd {
+    margin: 0 0 3px 100px;
+}
+.email-log-heading + table pre {
+    max-width: 280px;
+    max-height: 120px;
+    margin: 0;
+    overflow: auto;
+    white-space: pre-wrap;
+}
+.email-log-heading + table code {
+    word-break: break-all;
+}

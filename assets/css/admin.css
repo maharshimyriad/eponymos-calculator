@@ -1,0 +1,897 @@
+/* =============================================================================
+   Eponymos Admin — Design System
+   ============================================================================= */
+
+/* ── Tokens ── */
+:root {
+    --eq-blue:        #2271b1;
+    --eq-blue-dark:   #135e96;
+    --eq-blue-light:  #e8f0f8;
+    --eq-green:       #00a32a;
+    --eq-red:         #b32d2e;
+    --eq-border:      #dcdcde;
+    --eq-bg:          #f6f7f7;
+    --eq-surface:     #ffffff;
+    --eq-text:        #1d2327;
+    --eq-muted:       #646970;
+    --eq-radius:      6px;
+    --eq-shadow:      0 1px 4px rgba(0,0,0,.08);
+    --eq-shadow-lg:   0 4px 24px rgba(0,0,0,.18);
+    --eq-transition:  150ms ease;
+}
+
+/* ── Help tooltips ── */
+.epo-field-label { display: inline-flex; align-items: center; gap: 5px; margin-bottom: 4px; }
+.epo-info { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border: 1px solid var(--eq-blue); border-radius: 50%; color: var(--eq-blue); font-size: 10px; font-weight: 700; cursor: help; }
+.epo-info:hover, .epo-info:focus { background: var(--eq-blue); color: #fff; outline: none; }
+
+/* ── Page chrome ── */
+.eponymos-admin {
+    max-width: 1400px;
+}
+
+.eponymos-admin h1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--eq-text);
+    margin-bottom: 4px;
+}
+
+/* Page-level action bar sits between h1 and content */
+.epo-page-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 16px 0 20px;
+    padding: 12px 16px;
+    background: var(--eq-surface);
+    border: 1px solid var(--eq-border);
+    border-radius: var(--eq-radius);
+    box-shadow: var(--eq-shadow);
+}
+
+.epo-page-bar .epo-bar-title {
+    font-size: 13px;
+    color: var(--eq-muted);
+    margin-right: auto;
+}
+
+/* Status notice strip */
+.eponymos-notice {
+    min-height: 20px;
+    font-size: 13px;
+    color: var(--eq-blue);
+    font-weight: 500;
+    margin-bottom: 8px;
+    transition: color var(--eq-transition);
+}
+
+.eponymos-notice.notice-error {
+    color: var(--eq-red);
+}
+
+/* ── Builder layout ── */
+.eponymos-builder {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 20px;
+    align-items: start;
+    margin-top: 4px;
+}
+
+/* Sidebar */
+.eponymos-builder aside {
+    background: var(--eq-surface);
+    border: 1px solid var(--eq-border);
+    border-radius: var(--eq-radius);
+    box-shadow: var(--eq-shadow);
+    overflow: hidden;
+}
+
+.eponymos-builder aside h2 {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--eq-muted);
+    margin: 0;
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--eq-border);
+}
+
+.epo-sidebar-new {
+    display: block;
+    width: calc(100% - 28px);
+    margin: 12px 14px;
+    text-align: center;
+}
+
+/* Questionnaire list items */
+.eponymos-q {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: 0;
+    border-bottom: 1px solid var(--eq-border);
+    background: var(--eq-surface);
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--eq-text);
+    transition: background var(--eq-transition);
+    line-height: 1.4;
+}
+
+.eponymos-q:last-child {
+    border-bottom: 0;
+}
+
+.eponymos-q:hover {
+    background: var(--eq-bg);
+}
+
+.eponymos-q.selected {
+    background: var(--eq-blue-light);
+    color: var(--eq-blue-dark);
+    font-weight: 600;
+}
+
+.eponymos-q small {
+    display: block;
+    font-size: 11px;
+    color: var(--eq-muted);
+    font-weight: 400;
+    margin-top: 2px;
+    text-transform: capitalize;
+}
+
+.eponymos-q.selected small {
+    color: var(--eq-blue);
+}
+
+/* Editor area */
+.eponymos-builder main {
+    min-height: 300px;
+}
+
+.epo-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 280px;
+    background: var(--eq-surface);
+    border: 2px dashed var(--eq-border);
+    border-radius: var(--eq-radius);
+    color: var(--eq-muted);
+    font-size: 14px;
+    gap: 8px;
+}
+
+.epo-empty-state svg {
+    opacity: .3;
+}
+
+/* Editor head */
+.eponymos-editor-head {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: var(--eq-surface);
+    border: 1px solid var(--eq-border);
+    border-radius: var(--eq-radius);
+    box-shadow: var(--eq-shadow);
+}
+
+.eponymos-editor-head > div {
+    margin-right: auto;
+}
+
+.eponymos-editor-head h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 2px;
+    color: var(--eq-text);
+}
+
+.eponymos-editor-head p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--eq-muted);
+}
+
+.eponymos-editor-head .epo-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    text-transform: capitalize;
+    background: #e0f0e0;
+    color: var(--eq-green);
+}
+
+.eponymos-editor-head .epo-badge.inactive {
+    background: #f0f0f0;
+    color: var(--eq-muted);
+}
+
+/* ── Stage cards ── */
+.eponymos-stage-card {
+    background: var(--eq-surface);
+    border: 1px solid var(--eq-border);
+    border-radius: var(--eq-radius);
+    margin: 0 0 12px;
+    box-shadow: var(--eq-shadow);
+    overflow: hidden;
+    transition: box-shadow var(--eq-transition);
+}
+
+.eponymos-stage-card.dragging {
+    opacity: .6;
+    box-shadow: var(--eq-shadow-lg);
+}
+
+.eponymos-stage-card.drag-over {
+    border-color: var(--eq-blue);
+    box-shadow: 0 0 0 2px var(--eq-blue-light);
+}
+
+.eponymos-stage-card > header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--eq-bg);
+    border-bottom: 1px solid var(--eq-border);
+    cursor: default;
+}
+
+.eponymos-stage-card > header strong {
+    margin-right: auto;
+    font-size: 13px;
+    color: var(--eq-text);
+}
+
+.stage-body {
+    padding: 14px 16px;
+}
+
+.stage-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+/* ── Question cards ── */
+.eponymos-question {
+    background: var(--eq-bg);
+    border: 1px solid var(--eq-border);
+    border-radius: var(--eq-radius);
+    margin: 6px 0;
+    transition: box-shadow var(--eq-transition);
+}
+
+.eponymos-question.dragging {
+    opacity: .6;
+}
+
+.eponymos-question[draggable="true"] {
+    user-select: none;
+}
+
+.eponymos-question.drag-over {
+    border-color: var(--eq-blue);
+    box-shadow: 0 0 0 2px var(--eq-blue-light);
+}
+
+.eponymos-question > header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 12px;
+    cursor: grab;
+}
+
+.eponymos-question > header:active {
+    cursor: grabbing;
+}
+
+.eponymos-question > header .drag {
+    flex: 0 0 auto;
+    color: var(--eq-muted);
+    cursor: grab;
+    user-select: none;
+}
+
+.eponymos-question .question-heading {
+    display: flex;
+    flex: 1 1 260px;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.eponymos-question .question-heading strong {
+    margin: 0;
+    font-size: 13px;
+    color: var(--eq-text);
+}
+
+.eponymos-question .question-text {
+    overflow: hidden;
+    color: var(--eq-muted);
+    font-size: 12px;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.eponymos-question > header > em {
+    flex: 0 0 auto;
+}
+
+.eponymos-question > header strong {
+    font-size: 13px;
+    color: var(--eq-text);
+    line-height: 1.4;
+}
+
+.eponymos-question > header em {
+    font-style: normal;
+    font-size: 11px;
+    padding: 2px 7px;
+    background: var(--eq-blue-light);
+    color: var(--eq-blue-dark);
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+/* Drag handle */
+.drag {
+    cursor: grab;
+    color: var(--eq-border);
+    font-size: 16px;
+    user-select: none;
+    transition: color var(--eq-transition);
+    flex-shrink: 0;
+}
+
+.drag:hover,
+.eponymos-stage-card:hover .drag,
+.eponymos-question:hover .drag {
+    color: var(--eq-muted);
+}
+
+/* Question body (inline edit) */
+.question-body {
+    border-top: 1px solid var(--eq-border);
+    padding: 14px 12px 12px;
+    background: var(--eq-surface);
+}
+
+.question-body label {
+    display: block;
+    margin: 10px 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--eq-muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.question-body label > input,
+.question-body label > select,
+.question-body label > textarea {
+    display: block;
+    margin-top: 4px;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.question-body input:not([type=checkbox]),
+.question-body select,
+.question-body textarea {
+    width: 100%;
+    max-width: 580px;
+}
+
+.question-body textarea {
+    min-height: 60px;
+    resize: vertical;
+}
+
+.question-body .description {
+    font-size: 11px;
+    color: var(--eq-muted);
+    font-weight: 400;
+    margin-top: 3px;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+/* Options grid */
+.options {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--eq-border);
+}
+
+.options h4 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--eq-muted);
+    margin: 0 0 8px;
+}
+
+.eponymos-option {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr auto auto;
+    gap: 6px;
+    margin: 5px 0;
+    align-items: center;
+}
+
+.eponymos-option input {
+    font-size: 13px;
+}
+
+/* ── Library pages ── */
+.eponymos-library {
+    max-width: 1100px;
+}
+
+.epo-lib-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.epo-lib-toolbar h2 {
+    margin: 0;
+    margin-right: auto;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--eq-text);
+}
+
+/* Library table tweaks */
+.eponymos-library .widefat th,
+.eponymos-library .widefat td {
+    vertical-align: middle;
+}
+
+.eponymos-library .widefat code {
+    font-size: 12px;
+    background: var(--eq-bg);
+    padding: 2px 5px;
+    border-radius: 3px;
+    border: 1px solid var(--eq-border);
+}
+
+/* Option groups */
+.eponymos-lib-group {
+    background: var(--eq-surface);
+    border: 1px solid var(--eq-border);
+    border-radius: var(--eq-radius);
+    margin: 0 0 12px;
+    box-shadow: var(--eq-shadow);
+    overflow: hidden;
+}
+
+.eponymos-lib-group > header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--eq-bg);
+    border-bottom: 1px solid var(--eq-border);
+}
+
+.eponymos-lib-group > header strong {
+    margin-right: auto;
+    font-size: 13px;
+    color: var(--eq-text);
+}
+
+.eponymos-lib-group > header em {
+    font-style: normal;
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-weight: 500;
+    background: #e0f0e0;
+    color: var(--eq-green);
+}
+
+.eponymos-lib-group > header em.inactive {
+    background: #f0f0f0;
+    color: var(--eq-muted);
+}
+
+.lib-group-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.lib-options {
+    padding: 10px 14px;
+}
+
+.lib-options .eponymos-option {
+    grid-template-columns: 2fr 1fr 1fr auto auto;
+    background: var(--eq-bg);
+    border: 1px solid var(--eq-border);
+    border-radius: 4px;
+    padding: 6px 8px;
+}
+
+.lib-no-options {
+    color: var(--eq-muted);
+    font-style: italic;
+    font-size: 13px;
+    padding: 6px 0;
+}
+
+/* ── Submissions ── */
+.eponymos-submissions {
+    max-width: 1200px;
+}
+
+.submissions-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--eq-surface);
+    border: 1px solid var(--eq-border);
+    border-radius: var(--eq-radius);
+    box-shadow: var(--eq-shadow);
+    flex-wrap: wrap;
+}
+
+.submissions-toolbar input[type=search] {
+    min-width: 240px;
+    flex: 1;
+}
+
+.eponymos-submissions [data-submission-notice] {
+    min-height: 20px;
+    font-size: 13px;
+    color: var(--eq-red);
+    margin-bottom: 8px;
+}
+
+.submission-detail {
+    background: var(--eq-surface);
+    border: 1px solid var(--eq-border);
+    border-radius: var(--eq-radius);
+    padding: 20px 24px;
+    max-width: 900px;
+    box-shadow: var(--eq-shadow);
+}
+
+.submission-detail h2 {
+    margin-top: 0;
+    font-size: 16px;
+    color: var(--eq-text);
+}
+
+.submission-detail section {
+    border-top: 1px solid var(--eq-border);
+    padding: 16px 0;
+}
+
+.submission-detail h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--eq-muted);
+    margin: 0 0 12px;
+}
+
+.submission-detail h4 {
+    font-size: 13px;
+    color: var(--eq-text);
+    margin: 12px 0 6px;
+}
+
+.submission-detail dl {
+    display: grid;
+    grid-template-columns: minmax(140px, 24%) 1fr;
+    margin: 0;
+    border: 1px solid var(--eq-border);
+    border-radius: var(--eq-radius);
+    overflow: hidden;
+}
+
+.submission-detail dt,
+.submission-detail dd {
+    padding: 8px 12px;
+    margin: 0;
+    border-bottom: 1px solid var(--eq-border);
+    font-size: 13px;
+}
+
+.submission-detail dt:last-of-type,
+.submission-detail dd:last-of-type {
+    border-bottom: 0;
+}
+
+.submission-detail dt {
+    font-weight: 600;
+    background: var(--eq-bg);
+    color: var(--eq-muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.submission-detail pre {
+    background: var(--eq-bg);
+    border: 1px solid var(--eq-border);
+    border-radius: var(--eq-radius);
+    padding: 12px 14px;
+    white-space: pre-wrap;
+    overflow: auto;
+    font-size: 12px;
+    color: var(--eq-text);
+    max-height: 300px;
+}
+
+.submission-detail .widefat td,
+.submission-detail .widefat th {
+    font-size: 13px;
+}
+
+.submission-detail ul {
+    margin: 6px 0;
+    padding-left: 20px;
+}
+
+.submission-detail ul li {
+    font-size: 13px;
+    padding: 3px 0;
+    color: var(--eq-text);
+}
+
+.eponymos-submissions .tablenav {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--eq-muted);
+}
+
+/* ── Modal ── */
+.eponymos-modal[hidden] { display: none }
+
+.eponymos-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.eponymos-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.5);
+}
+
+.eponymos-modal-card {
+    position: relative;
+    width: min(900px, calc(100vw - 40px));
+    max-height: min(860px, calc(100vh - 40px));
+    overflow-y: auto;
+    background: var(--eq-surface);
+    border: 1px solid rgba(29,35,39,.12);
+    border-radius: 10px;
+    padding: 24px 26px 18px;
+    box-shadow: var(--eq-shadow-lg);
+}
+
+.eponymos-modal-card h2 {
+    margin: 0 -26px 20px;
+    padding: 0 56px 16px 26px;
+    border-bottom: 1px solid var(--eq-border);
+    font-size: 18px;
+    line-height: 1.35;
+    font-weight: 600;
+    color: var(--eq-text);
+}
+
+.eponymos-modal-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    border: 0;
+    background: transparent;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--eq-muted);
+    padding: 4px;
+    border-radius: 4px;
+    transition: color var(--eq-transition), background var(--eq-transition);
+}
+
+.eponymos-modal-close:hover {
+    color: var(--eq-text);
+    background: var(--eq-bg);
+}
+
+.eponymos-modal-intro,
+.eponymos-modal-help {
+    color: var(--eq-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.eponymos-modal-intro {
+    margin: -6px 0 16px;
+}
+
+.eponymos-modal-help {
+    margin: -8px 0 0;
+}
+
+.eponymos-modal-empty {
+    padding: 12px 14px;
+    border: 1px solid var(--eq-border);
+    border-radius: var(--eq-radius);
+    background: var(--eq-bg);
+    color: var(--eq-muted);
+    font-size: 13px;
+}
+
+.eponymos-modal-field {
+    display: block;
+    margin: 0 0 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--eq-muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.eponymos-modal-field input:not([type=checkbox]),
+.eponymos-modal-field textarea,
+.eponymos-modal-field select {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    margin-top: 5px;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 13px;
+    max-width: unset;
+}
+
+.eponymos-modal-field textarea {
+    min-height: 86px;
+    resize: vertical;
+}
+
+.eponymos-modal-field select[multiple] {
+    min-height: 360px;
+    padding: 4px;
+    background: var(--eq-surface);
+}
+
+.eponymos-modal-field select[multiple] option {
+    padding: 8px 10px;
+    border-radius: 4px;
+}
+
+.eponymos-modal-field select[multiple] option:checked {
+    background: var(--eq-blue-light);
+    color: var(--eq-blue-dark);
+}
+
+.eponymos-modal-field select[multiple] option:disabled {
+    color: var(--eq-muted);
+    background: var(--eq-bg);
+}
+
+.eponymos-modal-field input[type=checkbox] {
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.eponymos-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--eq-border);
+}
+
+
+/* ── Drag-over state ── */
+[data-questions] .drag-over {
+    border-color: var(--eq-blue);
+    box-shadow: 0 0 0 2px var(--eq-blue-light);
+}
+
+/* ── Utility ── */
+.notice-error { color: var(--eq-red) !important; }
+
+.epo-chip {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 500;
+    background: var(--eq-blue-light);
+    color: var(--eq-blue-dark);
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+    .eponymos-builder {
+        grid-template-columns: 1fr;
+    }
+    .eponymos-builder aside {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 700px) {
+    .eponymos-option {
+        grid-template-columns: 1fr 1fr;
+    }
+    .eponymos-option button {
+        grid-column: span 2;
+        width: max-content;
+    }
+    .submissions-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .submissions-toolbar input[type=search] {
+        min-width: 0;
+    }
+    .submission-detail dl {
+        grid-template-columns: 1fr;
+    }
+    .submission-detail dt {
+        border-bottom: 0;
+        padding-bottom: 2px;
+    }
+}
+
+/* ── Calculation role selector in question header ── */
+.epo-role-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #646970;
+    font-weight: 400;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.epo-role-label select {
+    font-size: 11px;
+    padding: 2px 4px;
+    height: auto;
+    max-width: 180px;
+}

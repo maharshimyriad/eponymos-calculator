@@ -1,0 +1,1847 @@
+/* Frontend questionnaire overrides. Base styles live in the theme. */
+html {
+  background: #0b0423;
+}
+
+
+.eponymos-questionnaire {
+  position: relative;
+}
+
+.eponymos-questionnaire input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.eponymos-questionnaire input[type="number"]::-webkit-inner-spin-button,
+.eponymos-questionnaire input[type="number"]::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.eponymos-screen--result {
+  width: 100%;
+  margin-top: 2rem;
+}
+
+.eponymos-error {
+  display: none;
+}
+
+.eponymos-error.is-visible {
+  display: block;
+}
+
+.eponymos-result {
+  width: 100%;
+  max-width: 85vw;
+  margin: 0 auto;
+}
+
+.eponymos-result strong,
+.eponymos-result h1,
+.eponymos-result h2,
+.eponymos-result h3,
+.eponymos-result h4,
+.eponymos-result h5,
+.eponymos-result h6 {
+  font-weight: 600 !important;
+}
+
+.eponymos-is-result .eponymos-questionnaire-static-text,
+.eponymos-is-result .eponymos-progress,
+.eponymos-is-result .eponymos-error {
+  display: none;
+}
+
+.eponymos-estimate-title {
+  display: none;
+}
+
+.eponymos-loading-steps {
+  display: grid;
+  gap: 10px;
+  text-align: left;
+  min-width: 260px;
+}
+
+.eponymos-loading-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  opacity: 0.45;
+  transition: opacity 0.25s ease, color 0.25s ease;
+}
+
+.eponymos-loading-step.is-active,
+.eponymos-loading-step.is-complete {
+  opacity: 1;
+}
+
+.eponymos-loading-step.is-complete {
+  color: #8fe0a8;
+}
+
+.eponymos-loading-icon {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.eponymos-loading-step.is-active .eponymos-loading-icon {
+  border-right-color: transparent;
+  animation: eponymos-loading-spin 0.8s linear infinite;
+}
+
+.eponymos-loading-step.is-complete .eponymos-loading-icon {
+  border: 0;
+}
+
+.eponymos-loading-step.is-complete .eponymos-loading-icon::after {
+  content: '\2713';
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.eponymos-loading-step.is-active span:last-child::after {
+  content: '';
+  display: inline-block;
+  width: 18px;
+  text-align: left;
+  animation: eponymos-loading-dots 1.1s steps(4, end) infinite;
+}
+
+@keyframes eponymos-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes eponymos-loading-dots {
+
+  0%,
+  20% {
+    content: '';
+  }
+
+  40% {
+    content: '.';
+  }
+
+  60% {
+    content: '..';
+  }
+
+  80%,
+  100% {
+    content: '...';
+  }
+}
+
+.eponymos-is-result .eponymos-estimate-title {
+  display: block;
+}
+
+/* Keep the Stage 2 escape action outside the question screen/card. */
+.eponymos-stage-one-button {
+  position: fixed;
+  z-index: 5;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 24px;
+  display: none;
+  width: max-content;
+  margin: 0;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: none !important;
+  box-shadow: none;
+}
+
+.eponymos-stage-one-button:hover,
+.eponymos-stage-one-button:focus {
+  border-color: #fff;
+}
+
+.eponymos-option-instruction,
+.eponymos-questionnaire .eponymos-help-text {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 1.1rem;
+  line-height: 1.3;
+  margin-top: 0;
+}
+
+.eponymos-options--grouped {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  text-align: left;
+}
+
+.eponymos-option-group {
+  min-width: 0;
+}
+
+.eponymos-question-title {
+  margin: 0 !important;
+  font-size: 1.1rem;
+  line-height: 1.3rem;
+}
+
+.eponymos-option-group-empty {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.75rem;
+}
+
+.eponymos-option-group-title {
+  margin: 0 0 10px;
+  color: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.eponymos-options--grouped .eponymos-option-label {
+  justify-content: flex-start;
+}
+
+.eponymos-stage-review-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 24px auto 0;
+}
+
+.eponymos-stage-review-actions .eponymos-btn {
+  min-height: 42px;
+  padding: 0 18px;
+}
+
+.eponymos-questionnaire.eponymos-is-result {
+  width: 85vw;
+  max-width: 85vw;
+  min-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.eponymos-estimate-screen {
+  color: #fff;
+  overflow: hidden;
+  font-family: inherit;
+}
+
+.eponymos-estimate-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 26px 28px 8px;
+}
+
+.eponymos-estimate-logo {
+  font-size: 1.5625rem;
+  line-height: 1;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+
+.eponymos-estimate-logo span {
+  font-size: 0.6875rem;
+  vertical-align: super;
+}
+
+.eponymos-estimate-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.eponymos-trial-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 18px;
+  border-radius: 18px;
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: linear-gradient(90deg, #d64bd7 0%, #ff7b55 100%);
+  white-space: nowrap;
+}
+
+.eponymos-menu-mark {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 9px;
+  width: 34px;
+  height: 34px;
+}
+
+.eponymos-menu-mark i {
+  display: block;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.eponymos-estimate-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 42px 0 60px;
+  row-gap: 42px;
+}
+
+.eponymos-plan-state {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.1rem, 2vw, 1.5rem);
+  line-height: 1.2;
+  text-align: center;
+}
+
+.eponymos-plan-estimate {
+  display: grid;
+  gap: 80px;
+  min-width: 0;
+  grid-template-columns: 1fr 1fr;
+}
+
+.eponymos-plan-details {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  min-width: 0;
+  padding: 22px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+
+.eponymos-estimate-title {
+  text-align: center;
+}
+
+.eponymos-estimate-title h2 {
+  font-weight: 600;
+  margin-bottom: 0;
+  font-size: 1rem;
+}
+
+.eponymos-estimate-title p {
+  margin: 0;
+}
+
+.eponymos-estimate-summary {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 2px 14px;
+  min-height: 54px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  max-width: none;
+  min-height: 0;
+  padding: 24px;
+  background: linear-gradient(145deg, rgba(218, 83, 224, 0.16), rgba(255, 119, 85, 0.1));
+}
+
+.eponymos-estimate-summary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: 12px;
+  background: linear-gradient(to right, #da53e0e0, #ff7755e0);
+  z-index: 0;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.eponymos-estimate-summary span,
+.eponymos-estimate-summary small {
+  grid-column: 1;
+  display: block;
+}
+
+.eponymos-estimate-summary span {
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.eponymos-estimate-summary small {
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 0.875rem;
+  line-height: 1.2;
+}
+
+.eponymos-plan-path {
+  display: grid;
+  grid-template-columns: repeat(7, auto);
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.eponymos-plan-path-section {
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.eponymos-plan-path-section::before {
+  content: 'Your estimate path';
+  display: block;
+  margin-bottom: 12px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.eponymos-plan-path div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.eponymos-plan-path div strong {
+  overflow: hidden;
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eponymos-plan-path div span {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.68rem;
+  line-height: 1.15;
+}
+
+.eponymos-plan-path>b {
+  color: #f06de7;
+  font-size: 1.1rem;
+  font-weight: 400;
+}
+
+.eponymos-estimate-summary strong {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  color: #fff;
+  font-size: 2.5rem;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.eponymos-savings-callout {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 0 0 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.eponymos-savings-callout>span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  border: 2px solid #d64bd7;
+  border-radius: 50%;
+  color: #f06de7;
+  font-size: 2.25rem;
+  line-height: 1;
+}
+
+.eponymos-savings-callout p {
+  margin: 0;
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.eponymos-savings-callout strong {
+  color: #f05be5;
+  font-weight: 400;
+}
+
+.eponymos-usage-panel {
+  margin: 0 72px;
+  padding: 10px 34px 18px 44px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.eponymos-chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  min-height: 18px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.5rem;
+  line-height: 1;
+}
+
+.eponymos-chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+}
+
+.eponymos-chart-legend i {
+  width: 7px;
+  height: 7px;
+  background: var(--swatch);
+}
+
+.eponymos-chart-wrap {
+  position: relative;
+  padding: 0 0 18px 22px;
+}
+
+.eponymos-chart-y {
+  position: absolute;
+  top: 11px;
+  bottom: 23px;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.eponymos-usage-chart {
+  display: block;
+  width: 100%;
+  height: 152px;
+}
+
+.eponymos-usage-chart .grid line {
+  stroke: rgba(255, 255, 255, 0.24);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.eponymos-usage-chart .ticks line {
+  stroke: rgba(255, 255, 255, 0.72);
+  stroke-width: 1;
+}
+
+.eponymos-usage-chart .line {
+  fill: none;
+  stroke-width: 2;
+}
+
+.eponymos-usage-chart .line-one {
+  stroke: #13b86a;
+}
+
+.eponymos-usage-chart .line-two {
+  stroke: #d948d4;
+}
+
+.eponymos-usage-chart .line-three {
+  stroke: #ff7043;
+}
+
+.eponymos-usage-chart .line-four {
+  stroke: #f2edf9;
+}
+
+.eponymos-chart-axis {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.75rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.eponymos-pay-note {
+  margin: 18px auto 30px;
+  color: rgba(255, 255, 255, 0.78);
+  text-align: center;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.eponymos-pay-note strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.eponymos-report-cta {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 34px;
+  padding: 28px 72px 28px;
+  color: #060019;
+  width: 95%;
+  margin: 0 auto;
+}
+
+.eponymos-report-cta h3 {
+  margin: 0 0 10px;
+  color: #060019;
+  font-size: 1.25rem;
+  line-height: 1.15;
+  font-weight: 600;
+}
+
+.eponymos-report-cta p {
+  margin: 0;
+  max-width: 560px;
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.eponymos-report-button.eponymos-btn {
+  min-height: 50px;
+  padding: 10px 24px;
+  border: 0;
+  border-radius: 25px;
+  background: #070019 !important;
+  color: #fff;
+  font-size: 1.125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: none;
+  text-decoration: none;
+}
+
+.eponymos-report-button span {
+  margin-left: 8px;
+  font-size: 1.25rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+body.page-id-924 .site-main {
+  padding: 2.5rem 1.5rem 0;
+  min-height: calc(100vh - var(--eponymos-site-header-height, 70px));
+}
+
+.eponymos-questionnaire.eponymos-is-result .eponymos-btn--primary {
+  background: linear-gradient(90deg, #d94cd8, #ff7655);
+  color: #fff !important;
+  width: fit-content !important;
+  text-decoration: none !important;
+}
+
+.eponymos-questionnaire.eponymos-is-result .eponymos-btn--primary:hover {
+  opacity: 1 !important;
+  transform: translateY(-1px);
+}
+
+body.page-questionnaire .site-main {
+  padding: 2.5rem 1rem 0 !important;
+}
+
+.eponymos-stage {
+  padding: 2rem 2.25rem 1.5rem;
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  min-height: 350px;
+}
+
+.eponymos-stage * {
+  position: relative;
+  z-index: 99;
+}
+
+.eponymos-screen--loading {
+  position: relative;
+  z-index: 1;
+  min-height: 350px;
+  padding: 3.5rem 2.25rem !important;
+}
+
+.eponymos-stage::before,
+.eponymos-screen--loading::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: 12px;
+  background: linear-gradient(to right, #da53e0e0, #ff7755e0);
+  z-index: 0;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.eponymos-questionnaire .eponymos-screen {
+  position: relative;
+  min-height: 350px;
+  width: 650px;
+  display: flex;
+  max-width: 95vw;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0 0 40px;
+  background: none;
+  box-shadow: none;
+}
+
+.eponymos-stage-two-report {
+  overflow: visible;
+  color: #fff;
+  background: #0d0328;
+  font-family: inherit;
+}
+
+.eponymos-report-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 20px;
+  min-height: 58px;
+  padding: 12px 28px;
+}
+
+.eponymos-report-logo {
+  color: #fff;
+  font-size: 1.25rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.eponymos-report-logo span {
+  margin-left: 2px;
+  color: #f05be5;
+  font-size: 0.5rem;
+  vertical-align: super;
+}
+
+.eponymos-report-header-note {
+  display: grid;
+  gap: 3px;
+  text-align: center;
+  font-size: 0.5rem;
+}
+
+.eponymos-report-header-note small {
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 0.4375rem;
+}
+
+.eponymos-report-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.eponymos-report-header-actions>span {
+  padding: 6px 12px;
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(90deg, #d64bd7, #ff7043);
+  font-size: 0.5rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.eponymos-report-header-actions button {
+  display: grid;
+  gap: 4px;
+  width: 22px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.eponymos-report-header-actions i {
+  display: block;
+  height: 2px;
+  background: #fff;
+}
+
+.eponymos-report-download {
+  display: block !important;
+  width: 100%;
+  margin: 32px 0 0 !important;
+  padding-bottom: 4px;
+  text-align: center;
+  clear: both;
+}
+
+.eponymos-report-download .eponymos-btn {
+  display: inline-flex !important;
+  min-width: 190px;
+  align-items: center;
+  justify-content: center;
+}
+
+.eponymos-report-download .eponymos-btn[aria-disabled='true'] {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.eponymos-report-content {
+  max-width: 85vw;
+  margin: 0 auto;
+  padding: 42px 54px 54px;
+}
+
+.eponymos-report-intro {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 34px;
+}
+
+.eponymos-report-intro h2 {
+  margin: 0 0 8px;
+  color: #f05be5;
+  font-size: 1.75rem;
+  line-height: 1.15;
+  font-weight: 600;
+}
+
+.eponymos-report-intro p {
+  max-width: 470px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.eponymos-report-monthly {
+  min-width: 170px;
+  padding: 14px 16px;
+  border-radius: 6px;
+  display: flex;
+  position: relative;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+
+.eponymos-report-monthly::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: 6px;
+  background: linear-gradient(to right, #da53e0, #ff7655);
+  z-index: 0;
+
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.eponymos-report-monthly span,
+.eponymos-report-monthly strong {
+  display: block;
+}
+
+.eponymos-report-monthly span {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.eponymos-report-monthly strong {
+  margin-top: 4px;
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.eponymos-report-summary {
+  margin: 50px auto 25px;
+  max-width: 680px;
+  color: #fff;
+  text-align: center;
+  font-size: 1.75rem;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.eponymos-report-summary strong {
+  color: #f05be5;
+}
+
+.eponymos-report-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+  margin: 0 0 26px;
+}
+
+.eponymos-report-metrics--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.eponymos-report-metrics>div {
+  display: grid;
+  gap: 6px;
+  min-height: 78px;
+  place-content: center;
+  border-radius: 6px;
+  text-align: center;
+  position: relative;
+  padding: 30px 20px;
+}
+
+.eponymos-report-metrics>div::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: 6px;
+  background: linear-gradient(to right, #da53e0, #ff7655);
+  z-index: 0;
+
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.eponymos-report-metrics strong {
+  color: #f05be5;
+  font-size: 3.5rem;
+  line-height: 1;
+}
+
+.eponymos-report-metrics span {
+  color: #fff;
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+.eponymos-report-comparison>h3,
+.eponymos-report-benefits>h3,
+.eponymos-report-savings>h3 {
+  margin: 24px 0 14px;
+  color: #fff;
+  text-align: center;
+  font-size: 1.125rem;
+  line-height: 1.2;
+}
+
+.eponymos-report-columns {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 55px;
+}
+
+.eponymos-report-card {
+  padding: 18px 18px 14px;
+  border-radius: 6px;
+  background: #1a1038;
+}
+
+.eponymos-report-card h4 {
+  margin: 0 0 9px;
+  font-size: 1.25rem;
+}
+
+.eponymos-report-card ul {
+  display: grid;
+  gap: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 1rem;
+  line-height: 1.15;
+}
+
+.eponymos-report-card li {
+  display: flex;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  justify-content: space-between;
+  gap: 10px;
+  margin: 5px 0;
+}
+
+.eponymos-report-card--eponymos.eponymos-report-card li {
+  padding: 8px 0 16px;
+}
+
+.eponymos-report-card--eponymos li:before {
+  content: '\2713';
+  margin-right: 5px;
+  color: #f05be5;
+  font-weight: 900;
+}
+
+.eponymos-report-card li span {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  color: #fff;
+}
+
+.eponymos-report-card li span small {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.9rem;
+}
+
+.eponymos-report-card li strong {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.eponymos-report-total {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  margin: 10px 0 0;
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  flex-direction: column;
+}
+
+.eponymos-report-total strong {
+  color: #f05be5;
+  font-size: 1.75rem;
+}
+
+.eponymos-report-total small {
+  margin-left: 3px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 1.375rem;
+  font-weight: 400;
+}
+
+.eponymos-report-vs {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  transform: translate(-50%, -50%);
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: #0d0328;
+  font-size: 0.625rem;
+  font-weight: 600;
+}
+
+.eponymos-report-vs::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  padding: 1px;
+  border-radius: 50%;
+  background: linear-gradient(to right, #da53e0, #ff7655);
+  z-index: -1;
+
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.eponymos-report-benefits {
+  margin-top: 15px;
+  padding: 0 20px 20px;
+  border-radius: 6px;
+  position: relative;
+}
+
+.eponymos-report-benefits::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: 6px;
+  background: linear-gradient(to right, #da53e0, #ff7655);
+  z-index: 0;
+
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.eponymos-report-benefits>h3 {
+  margin-top: 0;
+  padding-top: 14px;
+}
+
+.eponymos-benefit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 42px;
+  padding: 20px 0;
+}
+
+.eponymos-benefit-grid article h4 {
+  margin: 0 0 3px;
+  font-size: 1.25rem;
+}
+
+.eponymos-benefit-grid article p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.eponymos-report-savings>p {
+  max-width: 430px;
+  margin: -6px auto 14px;
+  color: rgba(255, 255, 255, 0.74);
+  text-align: center;
+  font-size: 0.6875rem;
+  line-height: 1.3;
+}
+
+.eponymos-report-chart {
+  position: relative;
+  padding: 18px 18px 26px;
+  border-radius: 6px;
+  background: #1a1038;
+}
+
+.eponymos-report-chart svg {
+  display: block;
+  width: 100%;
+  height: 150px;
+}
+
+.eponymos-report-chart-labels {
+  position: absolute;
+  top: 13px;
+  right: 12px;
+  display: grid;
+  gap: 24px;
+  font-size: 0.625rem;
+}
+
+.eponymos-report-chart-labels span {
+  display: grid;
+  gap: 2px;
+}
+
+.eponymos-report-chart-labels span:first-child strong {
+  color: #13b86a;
+}
+
+.eponymos-report-chart-labels span:last-child strong {
+  color: #d948d4;
+}
+
+.eponymos-report-chart-labels strong {
+  font-size: 0.75rem;
+}
+
+.eponymos-report-grid line {
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-dasharray: 2 3;
+}
+
+.eponymos-report-line {
+  fill: none;
+  stroke-width: 2;
+}
+
+.eponymos-report-line--traditional {
+  stroke: #13b86a;
+}
+
+.eponymos-report-line--eponymos {
+  stroke: #d948d4;
+}
+
+.eponymos-report-axis text {
+  fill: rgba(255, 255, 255, 0.7);
+  font-size: 0.625rem;
+}
+
+.eponymos-report-chart-title {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.625rem;
+  white-space: nowrap;
+}
+
+.eponymos-report-annual-callout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.eponymos-report-annual-callout>span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid #d64bd7;
+  border-radius: 50%;
+  color: #f05be5;
+  font-size: 1.375rem;
+}
+
+.eponymos-report-annual-callout p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.8125rem;
+  line-height: 1.3;
+}
+
+.eponymos-report-annual-callout strong,
+.eponymos-report-annual-callout b {
+  color: #f05be5;
+}
+
+.eponymos-questionnaire .eponymos-screen .eponymos-btn--primary {
+  background: #534e64;
+}
+
+.eponymos-questionnaire .eponymos-screen .eponymos-btn--primary:hover {
+  opacity: 1;
+  transform: none;
+}
+
+.eponymos-questionnaire .eponymos-screen .eponymos-report-download .eponymos-btn--primary {
+  background: linear-gradient(to right, #da53e0, #ff7655);
+}
+
+.eponymos-questionnaire .eponymos-screen .eponymos-actions {
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  display: flex;
+  width: 100%;
+}
+
+.eponymos-question-art-layer {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: 1;
+  display: none;
+  width: min(1040px, 92vw);
+  height: 360px;
+  overflow: visible;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.eponymos-question-art-layer.eponymos-art-is-questions {
+  display: block;
+}
+
+.eponymos-question-art {
+  position: absolute;
+  bottom: 0;
+  display: block;
+  width: clamp(100px, 16vw, 300px);
+  height: auto;
+  aspect-ratio: 390 / 450;
+}
+
+.eponymos-question-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+}
+
+.eponymos-question-art--left {
+  left: 0;
+  transform: translateX(-38%);
+}
+
+.eponymos-question-art--right {
+  right: 0;
+  transform: translateX(24%);
+}
+
+.eponymos-screen--questions input[type='radio'],
+.eponymos-screen--questions [type='checkbox'] {
+  width: 25px;
+  height: 25px;
+}
+
+.eponymos-screen--questions .eponymos-option-label span {
+  margin-top: 3px;
+  line-height: 1.32;
+}
+
+
+
+.eponymos-questionnaire .eponymos-screen.eponymos-screen--result {
+  width: 100%;
+  margin: 0;
+  padding-top: 0;
+}
+
+.eponymos-questionnaire .eponymos-btn--ghost:hover {
+  color: rgba(255, 255, 255, 0.75);
+  background: none;
+}
+
+.eponymos-questionnaire .eponymos-btn--ghost::before {
+  content: '\f340';
+  font-family: dashicons;
+  font-size: 1.25rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.eponymos-screen:not(.eponymos-screen--loading)::before {
+  display: none;
+}
+
+.eponymos-questionnaire .eponymos-screen.eponymos-screen--result::before {
+  display: none;
+}
+
+.eponymos-estimate-download {
+  margin: 25px 0;
+}
+
+.eponymos-report-cta-slot {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  background: linear-gradient(100deg, #d64bd7 0%, #ef6299 55%, #ff7b55 100%);
+  margin-top: auto;
+}
+
+.eponymos-report-benefits-title {
+  text-align: center;
+  margin-top: 45px;
+}
+
+.eponymos-report-benefits-title h3 {
+  margin: 0;
+}
+
+.eponymos-screen.eponymos-screen--email .eponymos-btn--primary {
+  margin-top: 30px;
+  background: linear-gradient(90deg, #da53e0, #ff7655);
+}
+
+/* Customize CSS */
+
+.eponymos-questionnaire-static-text p {
+  margin-bottom: 0 !important;
+}
+
+.eponymos-progress {
+  background: none;
+  color: #da53e0;
+  background-clip: unset;
+  -webkit-text-fill-color: unset;
+}
+
+.eponymos-option-label input[type='radio']:checked,
+.eponymos-option-label input[type='checkbox']:checked {
+  background: #da53e0;
+}
+
+.eponymos-report-savings,
+.eponymos-report-annual-callout {
+  display: none;
+}
+
+.eponymos-option-label {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .3rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+  transition: color 150ms;
+  word-break: break-word;
+}
+
+/* Media Queries */
+@media (max-width: 1240px) {
+  .eponymos-plan-estimate {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 980px) {
+  .eponymos-report-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .eponymos-questionnaire.eponymos-is-result {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .eponymos-result {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .eponymos-estimate-header {
+    padding: 22px 20px 4px;
+  }
+
+  .eponymos-estimate-hero {
+    gap: 22px;
+    margin-top: 10px;
+  }
+
+  .eponymos-plan-result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .eponymos-estimate-title {
+    order: -1;
+  }
+
+  .eponymos-usage-panel {
+    margin: 0 20px;
+    padding: 10px;
+  }
+
+  .eponymos-report-cta {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    padding: 26px 20px;
+  }
+
+  .eponymos-report-button.eponymos-btn {
+    width: 100%;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 769px) {
+  .eponymos-report-content {
+    padding: 30px 22px 38px;
+  }
+
+  .eponymos-report-intro {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .eponymos-report-monthly {
+    width: max-content;
+  }
+
+  .eponymos-report-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .eponymos-report-vs {
+    top: 50%;
+  }
+
+  .eponymos-benefit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .eponymos-report-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .eponymos-options--grouped {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .eponymos-questionnaire .eponymos-screen {
+    padding: 30px;
+  }
+}
+
+@media (max-width: 640px) {
+  .eponymos-report-header {
+    grid-template-columns: 1fr auto;
+    padding: 12px 16px;
+  }
+
+  .eponymos-questionnaire .eponymos-screen.eponymos-screen--result {
+    padding: 0;
+  }
+
+  .eponymos-report-header-note {
+    display: none;
+  }
+
+  .eponymos-report-content {
+    padding: 20px 0 34px;
+  }
+
+  .eponymos-report-monthly {
+    width: 100%;
+  }
+
+  .eponymos-report-columns,
+  .eponymos-benefit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .eponymos-report-vs {
+    top: 50%;
+  }
+
+  .eponymos-report-card--eponymos {
+    margin-top: 8px;
+  }
+
+  .eponymos-questionnaire .eponymos-screen .eponymos-btn--primary {
+    width: fit-content;
+  }
+
+  .eponymos-back-btn {
+    position: static;
+    transform: none;
+  }
+
+  .eponymos-option-label {
+    margin-bottom: 0.1rem;
+  }
+
+  .eponymos-option-label input[type='radio'],
+  .eponymos-option-label input[type='checkbox'] {
+    width: 22px;
+    height: 22px;
+    margin-top: 0;
+  }
+
+  .eponymos-questionnaire .eponymos-screen {
+    width: 100%;
+    padding: 15px;
+  }
+
+  .eponymos-questionnaire {
+    width: 85vw;
+  }
+
+  .eponymos-question-art-layer {
+    width: min(760px, 94vw);
+    height: 240px;
+  }
+
+  .eponymos-question-art {
+    width: clamp(80px, 16vw, 300px);
+  }
+
+  .eponymos-question-art--left {
+    transform: translateX(-16%);
+  }
+
+  .eponymos-question-art--right {
+    transform: translateX(16%);
+  }
+
+  .eponymos-option-instruction,
+  .eponymos-questionnaire .eponymos-help-text {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .eponymos-stage-one-button {
+    left: 16px;
+    bottom: 16px;
+  }
+
+  .eponymos-options--grouped {
+    grid-template-columns: 1fr;
+  }
+
+  .eponymos-estimate-header {
+    align-items: flex-start;
+  }
+
+  .eponymos-estimate-logo {
+    font-size: 1.25rem;
+  }
+
+  .eponymos-trial-pill {
+    min-height: 30px;
+    padding: 0 12px;
+    font-size: 0.75rem;
+  }
+
+  .eponymos-progress {
+    margin-top: 0.8rem;
+  }
+
+  .eponymos-estimate-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .eponymos-estimate-summary strong {
+    grid-row: auto;
+    grid-column: 1;
+    font-size: 2rem;
+  }
+
+  .eponymos-plan-path {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .eponymos-plan-path>b {
+    display: none;
+  }
+
+  .eponymos-chart-legend {
+    flex-wrap: wrap;
+    gap: 8px 14px;
+  }
+
+  .eponymos-usage-chart {
+    height: 130px;
+  }
+
+  .eponymos-savings-callout {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .eponymos-savings-callout p {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .eponymos-savings-callout p br {
+    display: none;
+  }
+
+  .eponymos-usage-panel {
+    margin: 15px 0;
+  }
+
+  .eponymos-usage-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .eponymos-usage-metrics {
+    gap: 8px;
+  }
+
+  .eponymos-usage-metrics strong {
+    font-size: 1rem;
+  }
+
+  .eponymos-savings-callout>span {
+    width: 46px;
+    height: 46px;
+    font-size: 1.75rem;
+  }
+}
+
+.eponymos-usage-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.78rem;
+}
+
+.eponymos-usage-heading span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.eponymos-usage-heading i {
+  width: 8px;
+  height: 8px;
+  background: var(--swatch);
+}
+
+.eponymos-usage-heading strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.eponymos-usage-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 22px 0 18px;
+}
+
+.eponymos-usage-metrics div {
+  display: grid;
+  gap: 4px;
+}
+
+.eponymos-usage-metrics strong {
+  color: #fff;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.eponymos-usage-metrics span,
+.eponymos-usage-axis {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.7rem;
+}
+
+.eponymos-usage-meter {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.eponymos-usage-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #13b86a;
+  transition: width 300ms ease;
+}
+
+.eponymos-usage-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.eponymos-usage-chart-wrap {
+  position: relative;
+  padding: 0 0 4px 28px;
+}
+
+.eponymos-usage-chart-y {
+  position: absolute;
+  top: 10px;
+  bottom: 33px;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.68rem;
+}
+
+.eponymos-usage-bars {
+  display: block;
+  width: 100%;
+  height: 180px;
+}
+
+.usage-grid-line {
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-dasharray: 3 4;
+}
+
+.usage-bar {
+  fill: #13b86a;
+}
+
+.usage-bar-value,
+.usage-bar-label {
+  fill: rgba(255, 255, 255, 0.8);
+  font-family: inherit;
+  font-size: 11px;
+  text-anchor: middle;
+}
+
+.usage-bar-value {
+  fill: #fff;
+  font-weight: 700;
+}
+
+.eponymos-usage-note {
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.7rem;
+}
+
+.eponymos-upgrade-callout {
+  padding: 14px 16px;
+  border-left: 3px solid #ff7755;
+  border-radius: 6px;
+  background: rgba(255, 119, 85, 0.08);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.eponymos-upgrade-callout strong {
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.eponymos-upgrade-callout small {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.eponymos-plan-nudge {
+  margin: 0;
+  padding: 11px 14px;
+  border-radius: 6px;
+  background: rgba(19, 184, 106, 0.11);
+  color: #b9f2d4;
+  font-size: 0.85rem;
+}
+
+.eponymos-savings-footnote {
+  margin-top: 40px;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.eponymos-plan-details .eponymos-savings-footnote {
+  margin-top: 0;
+}
