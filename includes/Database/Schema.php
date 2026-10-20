@@ -4,7 +4,7 @@ namespace Eponymos\Database;
 
 class Schema
 {
-    const VERSION = '1.8.0';
+    const VERSION = '1.9.0';
     public static function tables_exist()
     {
         global $wpdb;
@@ -27,7 +27,7 @@ class Schema
             "CREATE TABLE {$p}stages (id bigint unsigned NOT NULL AUTO_INCREMENT, questionnaire_id bigint unsigned NOT NULL, title varchar(190) NOT NULL, description text NOT NULL, status varchar(20) NOT NULL DEFAULT 'active', position int unsigned NOT NULL DEFAULT 0, settings longtext NOT NULL, PRIMARY KEY (id), KEY questionnaire_position (questionnaire_id,position)) $charset",
             "CREATE TABLE {$p}questions (id bigint unsigned NOT NULL AUTO_INCREMENT, stage_id bigint unsigned NOT NULL, label text NOT NULL, internal_name varchar(190) NOT NULL, question_key varchar(190) NOT NULL, type varchar(30) NOT NULL, required tinyint(1) NOT NULL DEFAULT 1, help_text text NOT NULL, placeholder varchar(190) NOT NULL, validation longtext NOT NULL, calculation_eligible tinyint(1) NOT NULL DEFAULT 0, position int unsigned NOT NULL DEFAULT 0, PRIMARY KEY (id), UNIQUE KEY stage_key (stage_id,question_key), KEY stage_position (stage_id,position)) $charset",
             "CREATE TABLE {$p}options (id bigint unsigned NOT NULL AUTO_INCREMENT, question_id bigint unsigned NOT NULL, label varchar(190) NOT NULL, option_key varchar(190) NOT NULL, calculation_value text NOT NULL, position int unsigned NOT NULL DEFAULT 0, PRIMARY KEY (id), UNIQUE KEY question_key (question_id,option_key), KEY question_position (question_id,position)) $charset",
-            "CREATE TABLE {$p}submissions (id bigint unsigned NOT NULL AUTO_INCREMENT, questionnaire_id bigint unsigned NOT NULL, questionnaire_name varchar(190) NOT NULL DEFAULT '', email varchar(190) NOT NULL, status varchar(20) NOT NULL DEFAULT 'completed', answers longtext NOT NULL, resolved_values longtext NOT NULL, calculation_inputs longtext NOT NULL, calculation_outputs longtext NOT NULL, pricing_result longtext NOT NULL, methodology_version varchar(50) NOT NULL, methodology_snapshot longtext NOT NULL, created_at datetime NOT NULL, updated_at datetime NOT NULL, PRIMARY KEY (id), KEY email (email), KEY questionnaire_created (questionnaire_id,created_at)) $charset",
+            "CREATE TABLE {$p}submissions (id bigint unsigned NOT NULL AUTO_INCREMENT, questionnaire_id bigint unsigned NOT NULL, questionnaire_name varchar(190) NOT NULL DEFAULT '', email varchar(190) NOT NULL, status varchar(20) NOT NULL DEFAULT 'completed', answers longtext NOT NULL, resolved_values longtext NOT NULL, calculation_inputs longtext NOT NULL, calculation_outputs longtext NOT NULL, pricing_result longtext NOT NULL, methodology_version varchar(50) NOT NULL, methodology_snapshot longtext NOT NULL, test_mode varchar(20) NOT NULL DEFAULT '', created_at datetime NOT NULL, updated_at datetime NOT NULL, PRIMARY KEY (id), KEY email (email), KEY questionnaire_created (questionnaire_id,created_at)) $charset",
             "CREATE TABLE {$p}submission_answers (id bigint unsigned NOT NULL AUTO_INCREMENT, submission_id bigint unsigned NOT NULL, question_id bigint unsigned NOT NULL, question_key varchar(190) NOT NULL, question_label text NOT NULL, stage_title varchar(190) NOT NULL, answer longtext NOT NULL, resolved_value longtext NOT NULL, answer_label longtext NOT NULL, PRIMARY KEY (id), KEY submission (submission_id), KEY question_key (question_key)) $charset",
             "CREATE TABLE {$p}option_groups (id bigint unsigned NOT NULL AUTO_INCREMENT, name varchar(190) NOT NULL, description text NOT NULL, hide_title tinyint(1) NOT NULL DEFAULT 0, status varchar(20) NOT NULL DEFAULT 'active', created_at datetime NOT NULL, updated_at datetime NOT NULL, PRIMARY KEY (id), KEY status_updated (status,updated_at)) $charset",
             "CREATE TABLE {$p}library_options (id bigint unsigned NOT NULL AUTO_INCREMENT, group_id bigint unsigned NOT NULL, label varchar(190) NOT NULL, option_key varchar(190) NOT NULL, calculation_value text NOT NULL, status varchar(20) NOT NULL DEFAULT 'active', position int unsigned NOT NULL DEFAULT 0, PRIMARY KEY (id), UNIQUE KEY group_key (group_id,option_key), KEY group_position (group_id,position)) $charset",
@@ -57,5 +57,6 @@ class Schema
         $columns = $wpdb->get_col("SHOW COLUMNS FROM {$table}", 0);
         if (!in_array('questionnaire_name', $columns, true)) $wpdb->query("ALTER TABLE {$table} ADD questionnaire_name varchar(190) NOT NULL DEFAULT '' AFTER questionnaire_id");
         if (!in_array('methodology_snapshot', $columns, true)) $wpdb->query("ALTER TABLE {$table} ADD methodology_snapshot longtext NOT NULL AFTER methodology_version");
+        if (!in_array('test_mode', $columns, true)) $wpdb->query("ALTER TABLE {$table} ADD test_mode varchar(20) NOT NULL DEFAULT '' AFTER methodology_snapshot");
     }
 }

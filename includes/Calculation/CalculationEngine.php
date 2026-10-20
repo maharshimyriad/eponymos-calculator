@@ -19,6 +19,15 @@
                 foreach ($stage['questions'] as $question) {
                     $key = (string) ($question['question_key'] ?? '');
                     if ($key === '' || !array_key_exists($key, $answers)) continue;
+                    $role = sanitize_key((string) ($question['calculation_role'] ?? ($question['validation']['calculation_role'] ?? '')));
+                    $configuredOptionValues = [];
+                    if ($role === 'active_days') {
+                        $configuredOptionValues = (array) $methodology->get('usage.frequency_days', []);
+                    } elseif ($role === 'software_savings') {
+                        foreach ((array) $methodology->get('competitor_costs', []) as $toolKey => $cost) {
+                            if (is_array($cost) && isset($cost['value'])) $configuredOptionValues[$toolKey] = $cost['value'];
+                        }
+                    }
                     $value = $answers[$key];
                     if (is_array($value)) {
                         $flattened = [];
@@ -34,13 +43,23 @@
                     }
                     $options = [];
                     foreach (($question['options'] ?? []) as $option) {
-                        if ($option['calculation_value'] === '' || $option['calculation_value'] === null) continue;
-                        $options[(string) $option['option_key']] = $option['calculation_value'];
+                        $optionKey = (string) ($option['option_key'] ?? '');
+                        $calculationValue = $option['calculation_value'] ?? null;
+                        if ($role === 'active_days' || $role === 'software_savings') {
+                            $calculationValue = $configuredOptionValues[$optionKey] ?? '';
+                        }
+                        if ($calculationValue === '' || $calculationValue === null) continue;
+                        $options[$optionKey] = $calculationValue;
                     }
                     foreach (($question['option_groups'] ?? []) as $group) {
                         foreach (($group['options'] ?? []) as $option) {
-                            if ($option['calculation_value'] === '' || $option['calculation_value'] === null) continue;
-                            $options[(string) $option['option_key']] = $option['calculation_value'];
+                            $optionKey = (string) ($option['option_key'] ?? '');
+                            $calculationValue = $option['calculation_value'] ?? null;
+                            if ($role === 'active_days' || $role === 'software_savings') {
+                                $calculationValue = $configuredOptionValues[$optionKey] ?? '';
+                            }
+                            if ($calculationValue === '' || $calculationValue === null) continue;
+                            $options[$optionKey] = $calculationValue;
                         }
                     }
                     foreach ($options as $option_key => $calculation_value) {
@@ -72,8 +91,7 @@
                     } else {
                         $resolved[$key] = $value;
                     }
-                    $role = isset($question['calculation_role']) ? sanitize_key($question['calculation_role']) : '';
-                    if (!empty($question['calculation_eligible']) || in_array($role, ['pitches_per_month', 'active_users', 'active_days', 'software_savings', 'software_spend', 'organization_type', 'agency_clients'], true)) {
+                    if (!empty($question['calculation_eligible']) || in_array($role, ['pitches_per_month', 'active_users', 'active_days', 'software_savings', 'organization_type', 'agency_clients'], true)) {
                         $inputs[$key] = $resolved[$key];
                     }
                 }
@@ -110,6 +128,7 @@
             $users   = ($roles['active_users'] !== '' && array_key_exists($roles['active_users'], $inputs))
                 ? ($this->numeric_value($inputs[$roles['active_users']]) ?? 0.0)
                 : 0.0;
+            $maximum_self_serve_users = (int) $methodology->get('pricing.maximum_users');
             $working_days = ($roles['active_days'] !== '' && array_key_exists($roles['active_days'], $inputs))
                 ? ($this->numeric_value($inputs[$roles['active_days']]) ?? (float) $methodology->get('usage.working_days_per_month'))
                 : (float) $methodology->get('usage.working_days_per_month');
@@ -125,16 +144,8 @@
 
             $software = 0.0;
             $software_source = 'none';
-            if ($roles['software_spend'] !== '' && array_key_exists($roles['software_spend'], $inputs)) {
-                $software = $this->numeric_max($inputs[$roles['software_spend']]) ?? 0.0;
-                if ($software > 0) $software_source = 'based on your answer';
-            }
-            if ($software <= 0 && $roles['software_savings'] !== '' && array_key_exists($roles['software_savings'], $inputs)) {
+            if ($roles['software_savings'] !== '' && array_key_exists($roles['software_savings'], $inputs)) {
                 $software = $this->numeric_total($inputs[$roles['software_savings']]) ?? 0.0;
-                if ($software > 0) $software_source = 'based on typical pricing for the tools you selected';
-            }
-            if ($software <= 0 && $users > 0) {
-                $software = $users * (float) $methodology->get('pricing.current_software_cost_per_user');
                 if ($software > 0) $software_source = 'based on typical pricing for the tools you selected';
             }
 
@@ -143,9 +154,10 @@
                 'social_media_tools' => (float) $methodology->get('software_categories.social_media_tools', 0),
                 'digital_asset_management' => (float) $methodology->get('software_categories.digital_asset_management', 0),
             ];
-            $selected_categories = $this->selected_software_categories($structure, $inputs, $roles['software_savings']);
+            $selected_categories = $this->selected_software_categories($structure, $inputs, $roles['software_savings'], $methodology);
             $pricing = (new PricingService())->calculate([
                 'active_users' => $users,
+                'maximum_self_serve_users' => $maximum_self_serve_users,
                 'active_days'             => $working_days,
                 'organization_type' => $organization_type,
                 'clients' => $agency_clients,
@@ -163,6 +175,7 @@
                 'stage_2_benchmark_monthly' => $software,
                 'stage_2_benchmark_source' => $software_source,
                 'active_users'             => $users,
+                'maximum_self_serve_users' => $maximum_self_serve_users,
                 'active_days'              => $working_days,
                 'pitches_per_month'        => $pitches,
                 'current_hours_per_pitch'  => (float) $methodology->get('productivity.current_hours_per_pitch'),
@@ -183,9 +196,9 @@
         /**
          * Resolve which question key serves each calculation role.
          * Roles are stored in the question's validation JSON as calculation_role.
-        * active_users, software_savings, and software_spend are optional — default to '' (unmapped).
+        * active_users and software_savings are optional — default to '' (unmapped).
         */
-        private function selected_software_categories(array $structure, array $inputs, string $software_key): array
+        private function selected_software_categories(array $structure, array $inputs, string $software_key, Methodology $methodology): array
         {
             if ($software_key === '' || !array_key_exists($software_key, $inputs)) return [];
             $selected = array_map('strval', (array) $inputs[$software_key]);
@@ -197,7 +210,8 @@
                         $category = trim((string) ($group['label'] ?? ''));
                         if ($category === '') continue;
                         foreach ((array)($group['options'] ?? []) as $option) {
-                            $calculation_value = $option['calculation_value'] ?? null;
+                            $option_key = (string) ($option['option_key'] ?? '');
+                            $calculation_value = $methodology->get('competitor_costs.' . $option_key . '.value');
                             if (is_numeric($calculation_value)
                                 && (float) $calculation_value > 0
                                 && in_array((string)($option['option_key'] ?? ''), $selected, true)) {
@@ -219,7 +233,6 @@
                 'active_users'      => '',   // optional
                 'active_days'       => '', // optional
                 'software_savings'  => '',   // optional
-                'software_spend'    => '',   // optional current spend range
             ];
             foreach ($structure['stages'] as $stage) {
                 foreach ($stage['questions'] as $question) {
@@ -249,17 +262,6 @@
                 $found = true;
             }
             return $found ? $total : null;
-        }
-
-        private function numeric_max($value): ?float
-        {
-            if (!is_array($value)) return $this->numeric_value($value);
-            $numbers = [];
-            foreach ($value as $item) {
-                $number = $this->numeric_value($item);
-                if ($number !== null) $numbers[] = $number;
-            }
-            return $numbers ? max($numbers) : null;
         }
 
         private function client_count_value($value): float

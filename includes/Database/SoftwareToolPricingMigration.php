@@ -4,7 +4,7 @@ namespace Eponymos\Database;
 
 class SoftwareToolPricingMigration
 {
-    const VERSION = '1.0.2';
+    const VERSION = '1.0.3';
 
     public static function run(): void
     {
@@ -12,26 +12,27 @@ class SoftwareToolPricingMigration
 
         global $wpdb;
         $prefix = $wpdb->prefix . 'eponymos_';
+        $competitorCosts = \Eponymos\Calculation\Methodology::load()->get('competitor_costs', []);
         $groups = [
             22 => [
-                'description' => 'Illustrative monthly estimates, dated 2026-09-30; not vendor quotes or independently verified.',
+                'description' => 'Competitor monthly estimates and provenance are managed in Calculation Methodology.',
                 'options' => [
-                    ['Sprout Social', 'sprout_social', 200],
-                    ['Brandwatch', 'brandwatch', 1000],
-                    ['Brand24', 'brand24', 150],
-                    ['Hootsuite', 'hootsuite', 100],
-                    ['Sprinklr', 'sprinklr', 1000],
+                    ['Sprout Social', 'sprout_social', $competitorCosts['sprout_social']['value'] ?? ''],
+                    ['Brandwatch', 'brandwatch', $competitorCosts['brandwatch']['value'] ?? ''],
+                    ['Brand24', 'brand24', $competitorCosts['brand24']['value'] ?? ''],
+                    ['Hootsuite', 'hootsuite', $competitorCosts['hootsuite']['value'] ?? ''],
+                    ['Sprinklr', 'sprinklr', $competitorCosts['sprinklr']['value'] ?? ''],
                     ['None/Not sure', 'none_not_sure', ''],
                 ],
             ],
             23 => [
-                'description' => 'Illustrative monthly estimates, dated 2026-09-30; not vendor quotes or independently verified.',
+                'description' => 'Competitor monthly estimates and provenance are managed in Calculation Methodology.',
                 'options' => [
-                    ['Brandfolder', 'brandfolder', 1000],
-                    ['Bynder', 'bynder', 1000],
-                    ['Canto', 'canto', 500],
-                    ['Acquia DAM', 'acquia_dam', 1000],
-                    ['Frontify', 'frontify', 500],
+                    ['Brandfolder', 'brandfolder', $competitorCosts['brandfolder']['value'] ?? ''],
+                    ['Bynder', 'bynder', $competitorCosts['bynder']['value'] ?? ''],
+                    ['Canto', 'canto', $competitorCosts['canto']['value'] ?? ''],
+                    ['Acquia DAM', 'acquia_dam', $competitorCosts['acquia_dam']['value'] ?? ''],
+                    ['Frontify', 'frontify', $competitorCosts['frontify']['value'] ?? ''],
                     ['None/Not sure', 'none_not_sure', ''],
                 ],
             ],
@@ -55,11 +56,6 @@ class SoftwareToolPricingMigration
                     'position' => $position,
                 ], ['%d', '%s', '%s', '%s', '%s', '%d']);
             }
-        }
-
-        $spend_group_id = (int) $wpdb->get_var($wpdb->prepare("SELECT option_group_id FROM {$prefix}library_questions WHERE question_key=%s LIMIT 1", 'pr_and_comms'));
-        if ($spend_group_id) {
-            $wpdb->update($prefix . 'library_options', ['calculation_value' => '250'], ['group_id' => $spend_group_id, 'option_key' => 'under_500'], ['%s'], ['%d', '%s']);
         }
 
         update_option('eponymos_software_tool_pricing_version', self::VERSION, false);

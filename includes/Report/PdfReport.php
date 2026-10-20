@@ -224,7 +224,7 @@ class PdfReport
         if ($rows === '') {
             $rows = '<tr><td colspan="3" class="muted">No current-tool selection was recorded.</td></tr>';
         }
-        $contact_link = '<a href="' . $this->esc_attr(home_url('/contact/')) . '" style="display:inline-block;padding:2mm 4mm;background:#d94f87;color:#fff;text-decoration:none;font-weight:bold;">Contact us for pricing</a>';
+        $contact_link = '<a href="' . $this->esc_attr(home_url('/contact-us/')) . '" style="display:inline-block;padding:2mm 4mm;background:#d94f87;color:#fff;text-decoration:none;font-weight:bold;">Contact us for pricing</a>';
         $networked_price = $data['is_networked'] ? $contact_link : $this->money($data['monthly_price']) . '/mo';
         $rows .= '<tr class="cost"><td><b>Monthly software cost</b></td><td class="msc-td"><b class="pink">' . $networked_price . '</b></td><td class="msc-td"><b>' . $this->money($data['spend']) . '/mo</b></td></tr>';
         $summary = $data['is_networked']
@@ -338,6 +338,7 @@ class PdfReport
         $is_networked = (($submission['pricing_result']['plan'] ?? '') === 'networked');
         $monthly_price = $is_networked ? null : (is_numeric($inputs['monthly_price'] ?? $inputs['eponymos_monthly_price'] ?? null) ? (float) ($inputs['monthly_price'] ?? $inputs['eponymos_monthly_price']) : null);
         $spend = (float) ($outputs['current_monthly_software_cost'] ?? 0);
+        $annual_periods = (float) ($inputs['annual_periods'] ?? \Eponymos\Calculation\Methodology::load()->get('roi.annual_periods'));
         $pitches = is_numeric($inputs['pitches_per_month'] ?? null) ? (float) $inputs['pitches_per_month'] : null;
         $current_hours = is_numeric($inputs['current_hours_per_pitch'] ?? null) ? (float) $inputs['current_hours_per_pitch'] : null;
         $new_hours = is_numeric($inputs['new_hours_per_pitch'] ?? null) ? (float) $inputs['new_hours_per_pitch'] : null;
@@ -356,7 +357,9 @@ class PdfReport
             'is_networked' => $is_networked,
             'spend' => $spend,
             'monthly_price' => $monthly_price,
-            'annual_saving' => $is_networked ? null : (float) ($outputs['annual_software_savings'] ?? max(0, $spend - $monthly_price) * (float) ($inputs['annual_periods'] ?? 12)),
+            'annual_saving' => $is_networked ? null : (is_numeric($outputs['annual_software_savings'] ?? null)
+                ? (float) $outputs['annual_software_savings']
+                : ($spend > 0 ? max(0, $spend - $monthly_price) * $annual_periods : null)),
             'productivity' => is_numeric($outputs['annual_productivity_value'] ?? null) ? (float) $outputs['annual_productivity_value'] : null,
             'annual_investment' => $is_networked ? null : (is_numeric($outputs['annual_investment'] ?? null) ? (float) $outputs['annual_investment'] : 0),
             'annual_value' => is_numeric($outputs['total_annual_value'] ?? null) ? (float) $outputs['total_annual_value'] : 0,
@@ -402,6 +405,7 @@ class PdfReport
 
         try {
             $structure = (new \Eponymos\Questionnaire\Repository())->admin_structure($questionnaire_id);
+            $competitorCosts = (array) \Eponymos\Calculation\Methodology::load()->get('competitor_costs', []);
             $map = [];
             foreach (($structure['stages'] ?? []) as $stage) {
                 foreach (($stage['questions'] ?? []) as $question) {
@@ -417,7 +421,9 @@ class PdfReport
                             if ($key !== '' && $name !== '') {
                                 $map[$question_key][$key] = [
                                     'group' => $name,
-                                    'calculation_value' => $option['calculation_value'] ?? null,
+                                    'calculation_value' => $calculation_role === 'software_savings'
+                                        ? ($competitorCosts[$key]['value'] ?? null)
+                                        : ($option['calculation_value'] ?? null),
                                     'calculation_role' => $calculation_role,
                                 ];
                             }

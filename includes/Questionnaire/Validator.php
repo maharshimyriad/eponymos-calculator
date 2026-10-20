@@ -22,6 +22,7 @@ class Validator
         foreach ($questions as $key => $q) {
             $present = array_key_exists($key, $answers);
             $v = $present ? $answers[$key] : null;
+            $calculation_role = $q['calculation_role'] ?? ($q['validation']['calculation_role'] ?? '');
             $allowed = array_column((array) ($q['options'] ?? []), 'option_key');
             if ($q['type'] === 'multiple_choice') {
                 if ($present && !is_array($v)) $errors[$key] = 'Please provide a list of options.';
@@ -59,19 +60,34 @@ class Validator
             } elseif ($q['type'] === 'email') {
                 $v = sanitize_email((string)$v);
                 if (!$v || !is_email($v)) $errors[$key] = 'Please enter a valid email address.';
+            } elseif ($q['type'] === 'number') {
+                $v = is_string($v) ? trim($v) : $v;
+                if ($calculation_role === 'active_users' && (!$present || $v === '' || $v === null)) {
+                    $errors[$key] = 'Please enter a valid number, e.g. 1, 2, 32.';
+                } elseif ($present && $v !== '' && $v !== null && !is_numeric($v)) {
+                    $errors[$key] = 'Please enter a number.';
+                } elseif ($calculation_role === 'active_users' && $present) {
+                    $user_count = (float) $v;
+                    if (!is_finite($user_count) || $user_count < 1 || floor($user_count) !== $user_count || $user_count > 9007199254740991) {
+                        $errors[$key] = 'Please enter a valid number, e.g. 1, 2, 32.';
+                    }
+                } elseif ($q['required'] && ($v === '' || $v === null)) {
+                    $errors[$key] = 'This field is required.';
+                }
             } else {
                 if ($present && !is_string($v) && !is_numeric($v)) $errors[$key] = 'Please provide a valid answer.';
                 $v = is_string($v) ? sanitize_textarea_field($v) : $v;
                 if ($q['required'] && ($v === '' || $v === null)) $errors[$key] = 'This field is required.';
-                if ($q['type'] === 'number' && $v !== '' && !is_numeric($v)) $errors[$key] = 'Please enter a number.';
                 $len = is_string($v) ? strlen($v) : 0;
                 if (isset($q['validation']['min_length']) && $len < (int)$q['validation']['min_length']) $errors[$key] = 'This answer is too short.';
                 if (isset($q['validation']['max_length']) && $len > (int)$q['validation']['max_length']) $errors[$key] = 'This answer is too long.';
             }
             if ($present) $clean[$key] = $v;
         }
-        $email = sanitize_email($email);
-        if ($validate_email && (!$email || !is_email($email))) $errors['_email'] = 'Please enter a valid work email address.';
+        if ($validate_email) {
+            $email = sanitize_email($email);
+            if (!$email || !is_email($email)) $errors['_email'] = 'Please enter a valid work email address.';
+        }
         return [$clean, $errors];
     }
 }

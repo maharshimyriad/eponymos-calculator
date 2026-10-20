@@ -28,6 +28,12 @@ class ThemeSettingsIntegration
         register_setting(self::GROUP, 'eponymos_submission_admin_email', [
             'sanitize_callback' => [$this, 'sanitize_submission_admin_email'],
         ]);
+        register_setting(self::GROUP, 'eponymos_test_mode_enabled', [
+            'sanitize_callback' => 'rest_sanitize_boolean',
+        ]);
+        register_setting(self::GROUP, 'eponymos_test_mode', [
+            'sanitize_callback' => [$this, 'sanitize_test_mode'],
+        ]);
 
         // Add the plugin settings section.
         add_settings_section(
@@ -80,6 +86,8 @@ class ThemeSettingsIntegration
             self::PAGE,
             self::SECTION
         );
+
+        add_settings_field('eponymos_test_mode_enabled', __('Test mode', 'eponymos'), [$this, 'field_test_mode_enabled'], self::PAGE, self::SECTION);
     }
 
     public function menu(): void
@@ -147,6 +155,31 @@ class ThemeSettingsIntegration
         echo '<p class="description">' . esc_html__('Completed questionnaire submissions will be sent to these addresses. Separate multiple email addresses with commas or put one address per line.', 'eponymos') . '</p>';
     }
 
+    public function field_test_mode_enabled(): void
+    {
+        $enabled = (bool) get_option('eponymos_test_mode_enabled', false);
+        echo '<input type="hidden" name="eponymos_test_mode_enabled" value="0">';
+        echo '<label><input id="eponymos_test_mode_enabled" type="checkbox" name="eponymos_test_mode_enabled" value="1" onchange="document.getElementById(\'eponymos-test-mode-options\').style.display=this.checked?\'block\':\'none\'"' . checked($enabled, true, false) . '> ';
+        echo esc_html__('Enable test mode for logged-in administrators', 'eponymos') . '</label>';
+        echo '<p class="description">' . esc_html__('Test runs are isolated from normal submissions and never send to real email addresses.', 'eponymos') . '</p>';
+        echo '<div id="eponymos-test-mode-options" class="eponymos-test-mode-options" style="display:' . ($enabled ? 'block' : 'none') . ';margin: 0 0 0 24px;">';
+        $this->field_test_mode();
+        echo '</div>';
+    }
+
+    public function field_test_mode(): void
+    {
+        $mode = get_option('eponymos_test_mode', 'without_email');
+        if (!in_array($mode, ['without_email', 'with_email'], true)) $mode = 'without_email';
+        echo '<fieldset>';
+        echo '<label><input type="radio" name="eponymos_test_mode" value="without_email"' . checked($mode, 'without_email', false) . '> ';
+        echo esc_html__('Test Mode Without Email Trigger', 'eponymos') . '</label><br>';
+        echo '<label><input type="radio" name="eponymos_test_mode" value="with_email"' . checked($mode, 'with_email', false) . '> ';
+        echo esc_html__('Test Mode With Email Trigger', 'eponymos') . '</label>';
+        echo '<p class="description">' . esc_html__('Email-trigger tests invoke both notification flows using non-deliverable placeholder addresses.', 'eponymos') . '</p>';
+        echo '</fieldset>';
+    }
+
     // ── Sanitizers ────────────────────────────────────────────────────────────
 
     public function sanitize_pricing($v): array
@@ -170,6 +203,11 @@ class ThemeSettingsIntegration
                 $valid[] = $email;
         }
         return implode(', ', $valid);
+    }
+
+    public function sanitize_test_mode($value): string
+    {
+        return in_array($value, ['without_email', 'with_email'], true) ? $value : 'without_email';
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

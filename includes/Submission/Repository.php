@@ -20,6 +20,10 @@ class Repository
         $now = current_time('mysql');
         $existing_submission_id = array_key_exists('submission_id', $data) ? absint($data['submission_id']) : 0;
         $submission_id = $existing_submission_id;
+        $test_mode = in_array($data['test_mode'] ?? '', ['without_email', 'with_email'], true) ? $data['test_mode'] : '';
+        if ($test_mode !== '') {
+            return new \WP_Error('test_submission_not_persisted', 'Test mode submissions are not stored.', ['status' => 400]);
+        }
         $wpdb->query('START TRANSACTION');
         $submission_data = [
             'questionnaire_id' => absint($data['questionnaire_id']),
@@ -32,13 +36,15 @@ class Repository
             'pricing_result' => $this->json($data['pricing_result']),
             'methodology_version' => sanitize_text_field($data['methodology_version'] ?? 'unknown'),
             'methodology_snapshot' => $this->json($data['methodology_snapshot'] ?? []),
+            'test_mode' => $test_mode,
             'updated_at' => $now,
         ];
         if ($submission_id) {
             $existing = $wpdb->get_var($wpdb->prepare(
-                'SELECT id FROM ' . $this->table('submissions') . ' WHERE id=%d AND questionnaire_id=%d',
+                'SELECT id FROM ' . $this->table('submissions') . ' WHERE id=%d AND questionnaire_id=%d AND test_mode=%s',
                 $submission_id,
-                absint($data['questionnaire_id'])
+                absint($data['questionnaire_id']),
+                $test_mode
             ));
             if (!$existing) {
                 $wpdb->query('ROLLBACK');
@@ -47,10 +53,10 @@ class Repository
             $ok = $wpdb->update($this->table('submissions'), $submission_data, [
                 'id' => $submission_id,
                 'questionnaire_id' => absint($data['questionnaire_id']),
-            ], ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'], ['%d', '%d']);
+            ], ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s'], ['%d', '%d']);
         } else {
             $submission_data['created_at'] = $now;
-            $ok = $wpdb->insert($this->table('submissions'), $submission_data, ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s']);
+            $ok = $wpdb->insert($this->table('submissions'), $submission_data, ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s']);
             $submission_id = (int) $wpdb->insert_id;
         }
         if ($ok === false) {
@@ -131,9 +137,10 @@ class Repository
     {
         global $wpdb;
         $id = $wpdb->get_var($wpdb->prepare(
-            'SELECT id FROM ' . $this->table('submissions') . ' WHERE questionnaire_id=%d AND email=%s ORDER BY updated_at DESC, id DESC LIMIT 1',
+            'SELECT id FROM ' . $this->table('submissions') . ' WHERE questionnaire_id=%d AND email=%s AND test_mode=%s ORDER BY updated_at DESC, id DESC LIMIT 1',
             $questionnaire_id,
-            sanitize_email($email)
+            sanitize_email($email),
+            ''
         ));
         return $id ? $this->find((int) $id) : null;
     }
@@ -141,7 +148,7 @@ class Repository
     public function query($args = [])
     {
         global $wpdb;
-        $where = ['1=1'];
+        $where = ["s.test_mode=''"];
         $values = [];
         if (!empty($args['search'])) {
             $where[] = '(s.email LIKE %s OR q.name LIKE %s)';

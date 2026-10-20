@@ -11,11 +11,14 @@ namespace Eponymos\Tests {
             global $wpdb;
 
             $wpdb = new class {
+                public $prefix = 'wp_';
                 public $insert_id = 101;
                 public $deleteCalls = 0;
+                public $queryCalls = 0;
 
                 public function query($sql)
                 {
+                    $this->queryCalls++;
                     return true;
                 }
 
@@ -92,6 +95,17 @@ namespace Eponymos\Tests {
             $this->assertSame(101, $id);
             $this->assertSame(0, $wpdb->deleteCalls);
         }
+
+        public function testTestModeSubmissionIsRejectedBeforeDatabaseWrites(): void
+        {
+            global $wpdb;
+
+            $result = (new Repository())->save(['test_mode' => 'without_email']);
+
+            $this->assertInstanceOf(\WP_Error::class, $result);
+            $this->assertSame('test_submission_not_persisted', $result->get_error_code());
+            $this->assertSame(0, $wpdb->queryCalls);
+        }
     }
 }
 
@@ -128,6 +142,23 @@ namespace Eponymos\Submission {
 }
 
 namespace {
+    if (!class_exists('WP_Error')) {
+        class WP_Error
+        {
+            private $code;
+
+            public function __construct($code = '')
+            {
+                $this->code = $code;
+            }
+
+            public function get_error_code()
+            {
+                return $this->code;
+            }
+        }
+    }
+
     function absint($value)
     {
         return (int) $value;

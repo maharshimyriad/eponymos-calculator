@@ -27,6 +27,6 @@ class ReportEngineTest extends TestCase
         $pricing_rows = $report['sections'][1]['rows'];
         $this->assertSame('Networked (custom pricing)', $pricing_rows[0]['value']);
         $this->assertSame('Contact us for pricing', $pricing_rows[3]['value']);
-        $this->assertSame('/contact/', $pricing_rows[4]['value']);
+        $this->assertSame('/contact-us/', $pricing_rows[4]['value']);
     }
 }

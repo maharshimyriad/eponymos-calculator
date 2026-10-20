@@ -22,11 +22,12 @@ class ReportMethodology
         $newHours = $pitches === null ? null : $pitches * (float) $input['new_hours_per_pitch'];
         $reclaimed = $currentHours === null ? null : max(0, $currentHours - $newHours);
         $monthlyProductivity = $reclaimed === null ? null : $reclaimed * (float) $input['hourly_rate'];
-        $monthlySoftwareSavings = $price !== null && $price > 0 ? max(0, $software - $price) : 0;
-        $annualSoftware = $monthlySoftwareSavings * $periods;
+        $hasSoftwareBaseline = $software > 0;
+        $monthlySoftwareSavings = !$hasSoftwareBaseline ? null : ($price !== null && $price > 0 ? max(0, $software - $price) : 0);
+        $annualSoftware = $monthlySoftwareSavings === null ? null : $monthlySoftwareSavings * $periods;
         $annualProductivity = $monthlyProductivity === null ? null : $monthlyProductivity * $periods;
         $investment = $price !== null && $price > 0 ? $price * $periods : null;
-        $total = $annualSoftware + ($annualProductivity ?? 0);
+        $total = ($annualSoftware ?? 0) + ($annualProductivity ?? 0);
 
         return [
             'current_monthly_software_cost' => $software,
@@ -39,7 +40,7 @@ class ReportMethodology
             'annual_productivity_value' => $annualProductivity,
             'annual_investment' => $investment,
             'total_annual_value' => $total,
-            'roi_percent' => $investment === null ? null : ($total / $investment) * 100,
+            'roi_percent' => $investment === null || !$hasSoftwareBaseline ? null : ($total / $investment) * 100,
         ];
     }
 }

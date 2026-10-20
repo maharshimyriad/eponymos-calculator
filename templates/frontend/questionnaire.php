@@ -1,11 +1,14 @@
 <?php defined('ABSPATH') || exit; ?>
 <div class="eponymos-questionnaire" data-eponymos>
+    <?php if (!empty($testModeLabel)): ?>
+        <div class="eponymos-test-mode-banner" role="status"><?php echo esc_html($testModeLabel); ?></div>
+    <?php endif; ?>
     <div class="eponymos-questionnaire-static-text">
-        <p>Build your Eponymos™ plan</p>
+        <p><?php echo !empty($testModeLabel) ? esc_html__('Administrator test run', 'eponymos') : 'Build your Eponymos™ plan'; ?></p>
         <span>Answer a few questions to get your personalised estimate.</span>
     </div>
     <div class="eponymos-estimate-title">
-        <h2>Build your Eponymos™ plan</h2>
+        <h2><?php echo !empty($testModeLabel) ? esc_html__('Test estimate', 'eponymos') : 'Build your Eponymos™ plan'; ?></h2>
         <p>Your estimate is ready!</p>
     </div>
     <!-- Progress / stage indicator -->
@@ -50,7 +53,7 @@
 
 </div>
 <div class="eponymos-question-art-layer" data-eponymos-art aria-hidden="true">
-    <div class="eponymos-question-art eponymos-question-art--left"><img src="/wp-content/uploads/2026/09/pr-female-character-yellow-jacket.webp" alt=""></div>
-    <div class="eponymos-question-art eponymos-question-art--right"><img src="/wp-content/uploads/2026/09/pr-male-character-brown-cap.webp" alt=""></div>
+    <div class="eponymos-question-art eponymos-question-art--left"><img src="https://eponymos.com/wp-content/uploads/2026/09/pr-female-character-yellow-jacket.webp" alt=""></div>
+    <div class="eponymos-question-art eponymos-question-art--right"><img src="https://eponymos.com/wp-content/uploads/2026/09/pr-male-character-brown-cap.webp" alt=""></div>
 </div>
 

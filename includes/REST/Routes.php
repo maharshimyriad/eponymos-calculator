@@ -109,6 +109,23 @@ class Routes
     return is_array($body) ? $body : [];
   }
 
+  private function validated_test_mode(WP_REST_Request $request, array $body)
+  {
+    $mode = sanitize_key((string) ($body['test_mode'] ?? ''));
+    if ($mode === '')
+      return '';
+    if (!in_array($mode, ['without_email', 'with_email'], true))
+      return new WP_Error('invalid_test_mode', 'Invalid test mode.', ['status' => 400]);
+    if (!(bool) get_option('eponymos_test_mode_enabled', false)
+      || get_option('eponymos_test_mode', 'without_email') !== $mode
+      || !is_user_logged_in()
+      || !current_user_can('manage_options')
+      || !wp_verify_nonce((string) $request->get_header('X-WP-Nonce'), 'wp_rest')) {
+      return new WP_Error('test_mode_forbidden', 'Test mode is available only to logged-in administrators with a valid REST nonce.', ['status' => 403]);
+    }
+    return $mode;
+  }
+
   private function report_token(array $submission): string
   {
     return wp_hash((int) ($submission['id'] ?? 0) . '|' . ($submission['email'] ?? '') . '|' . ($submission['created_at'] ?? ''));
@@ -148,6 +165,7 @@ class Routes
 
   private function selected_software_categories_from_tools(array $inputs, array $structure, array $answers): array
   {
+    $competitorCosts = (array) Methodology::load()->get('competitor_costs', []);
     foreach (($structure['stages'] ?? []) as $stage) {
       foreach (($stage['questions'] ?? []) as $question) {
         if (($question['calculation_role'] ?? '') !== 'software_savings')
@@ -156,12 +174,15 @@ class Routes
         $categories = [];
         foreach ((array) ($question['option_groups'] ?? []) as $group) {
           $category = trim((string) ($group['label'] ?? ''));
-          foreach ((array) ($group['options'] ?? []) as $option)
+          foreach ((array) ($group['options'] ?? []) as $option) {
+            $optionKey = (string) ($option['option_key'] ?? '');
+            $configuredValue = $competitorCosts[$optionKey]['value'] ?? null;
             if ($category
-              && is_numeric($option['calculation_value'] ?? null)
-              && (float) $option['calculation_value'] > 0
-              && in_array((string) ($option['option_key'] ?? ''), $selected, true))
+              && is_numeric($configuredValue)
+              && (float) $configuredValue > 0
+              && in_array($optionKey, $selected, true))
               $categories[$category] = true;
+          }
         }
         return array_keys($categories);
       }
@@ -173,6 +194,7 @@ class Routes
   {
     $items = [];
     $seen = [];
+    $competitorCosts = (array) Methodology::load()->get('competitor_costs', []);
     foreach (($structure['stages'] ?? []) as $stage) {
       foreach (($stage['questions'] ?? []) as $question) {
         if (($question['calculation_role'] ?? '') !== 'software_savings')
@@ -190,15 +212,16 @@ class Routes
           $available_options[(string) ($option['option_key'] ?? '')] = $option;
         }
         foreach ($available_options as $option) {
-          $calculation_value = $option['calculation_value'] ?? null;
+          $optionKey = (string) ($option['option_key'] ?? '');
+          $calculation_value = $competitorCosts[$optionKey]['value'] ?? null;
           if (is_numeric($calculation_value)
             && (float) $calculation_value > 0
-            && in_array((string) $option['option_key'], $selected, true)) {
-            $identity = $question['question_key'] . ':' . (string) $option['option_key'];
+            && in_array($optionKey, $selected, true)) {
+            $identity = $question['question_key'] . ':' . $optionKey;
             if (isset($seen[$identity]))
               continue;
             $seen[$identity] = true;
-            $items[] = ['label' => $option['label'], 'value' => $option['calculation_value'], 'option_key' => $option['option_key'], 'option_group_name' => $option['option_group_name'] ?? ''];
+            $items[] = ['label' => $option['label'], 'value' => $calculation_value, 'option_key' => $optionKey, 'option_group_name' => $option['option_group_name'] ?? ''];
           }
         }
       }
@@ -510,10 +533,14 @@ class Routes
     $body = $request->get_json_params();
     if (!is_array($body))
       return new WP_Error('invalid_payload', 'Invalid submission payload.', ['status' => 400]);
+    $test_mode = $this->validated_test_mode($request, $body);
+    if (is_wp_error($test_mode))
+      return $test_mode;
+    $email = $test_mode !== '' ? 'client@eponymos-test.invalid' : sanitize_email($body['email'] ?? '');
     $structure = (new Repository())->structure(absint($body['questionnaire_id'] ?? 0));
     if (!$structure)
       return new WP_Error('not_found', 'Questionnaire unavailable', ['status' => 404]);
-    [$answers, $errors] = (new Validator())->validate($structure, (array) ($body['answers'] ?? []), $body['email'] ?? '');
+    [$answers, $errors] = (new Validator())->validate($structure, (array) ($body['answers'] ?? []), $email);
     if ($errors)
       return new WP_Error('validation', 'Please correct the highlighted fields', ['status' => 422, 'fields' => $errors]);
     $calc = (new CalculationEngine())->resolve($structure, $answers);
@@ -522,7 +549,13 @@ class Routes
     $pricing = (new PricingService())->calculate($calc['calculation_inputs']);
     if (is_wp_error($pricing))
       return $pricing;
-    $id = (new SubmissionRepository())->save(['questionnaire_id' => $structure['questionnaire']['id'], 'questionnaire_name' => $structure['questionnaire']['name'], 'email' => sanitize_email($body['email'] ?? ''), 'answers' => $answers, 'resolved_values' => $calc['resolved_values'], 'calculation_inputs' => $calc['calculation_inputs'], 'calculation_outputs' => $calc['calculation_outputs'], 'pricing_result' => $pricing, 'methodology_version' => $calc['methodology_version'], 'methodology_snapshot' => $calc['methodology'], 'structure' => $structure]);
+    if ($test_mode !== '') {
+      if ($test_mode === 'with_email')
+        $this->send_test_submission_notification((string) $structure['questionnaire']['name'], $pricing, false);
+      return ['submission_id' => 0, 'pricing' => $pricing];
+    }
+
+    $id = (new SubmissionRepository())->save(['questionnaire_id' => $structure['questionnaire']['id'], 'questionnaire_name' => $structure['questionnaire']['name'], 'email' => $email, 'answers' => $answers, 'resolved_values' => $calc['resolved_values'], 'calculation_inputs' => $calc['calculation_inputs'], 'calculation_outputs' => $calc['calculation_outputs'], 'pricing_result' => $pricing, 'methodology_version' => $calc['methodology_version'], 'methodology_snapshot' => $calc['methodology'], 'structure' => $structure]);
     if (is_wp_error($id))
       return $id;
     if (!$id)
@@ -640,11 +673,14 @@ class Routes
     $body = $request->get_json_params();
     if (!is_array($body))
       return new WP_Error('invalid_payload', 'Invalid payload.', ['status' => 400]);
+    $test_mode = $this->validated_test_mode($request, $body);
+    if (is_wp_error($test_mode))
+      return $test_mode;
 
     $questionnaire_id = absint($body['questionnaire_id'] ?? 0);
     $stage_id = absint($body['stage_id'] ?? 0);
-    $submission_id = absint($body['submission_id'] ?? 0);
-    $email = sanitize_email($body['email'] ?? '');
+    $submission_id = $test_mode !== '' ? 0 : absint($body['submission_id'] ?? 0);
+    $email = $test_mode !== '' ? 'client@eponymos-test.invalid' : sanitize_email($body['email'] ?? '');
     $raw_answers = (array) ($body['answers'] ?? []);
     $all_answers = (array) ($body['all_answers'] ?? $raw_answers);
 
@@ -677,7 +713,7 @@ class Routes
       }
     }
     $is_followup_stage = $active_stage_index > 0 || absint($stage['position'] ?? 0) > 0;
-    if ($is_followup_stage) {
+    if ($is_followup_stage && $test_mode === '') {
       if ($submission_id) {
         $existing_submission = (new SubmissionRepository())->find($submission_id);
         if ($existing_submission && is_email($existing_submission['email'] ?? ''))
@@ -726,23 +762,47 @@ class Routes
     if (is_wp_error($pricing))
       return $pricing;
 
-    // Persist submission snapshot for this stage.
-    $submission_id = (new SubmissionRepository())->save([
-      'questionnaire_id' => $questionnaire_id,
-      'submission_id' => $submission_id,
-      'questionnaire_name' => $full_structure['questionnaire']['name'],
-      'methodology_version' => $calc['methodology_version'],
-      'methodology_snapshot' => $calc['methodology'],
-      'email' => $email,
-      'answers' => $this->merge_submission_answers($all_answers, $calculation_answers),
-      'resolved_values' => $calc['resolved_values'],
-      'calculation_inputs' => $calc['calculation_inputs'],
-      'calculation_outputs' => $calc['calculation_outputs'],
-      'pricing_result' => $pricing,
-      'structure' => $calculation_structure,
-    ]);
-    if (is_wp_error($submission_id))
-      return $submission_id;
+    $calculation_inputs = $calc['calculation_inputs'];
+    $calculation_outputs = $calc['calculation_outputs'];
+    if (!$is_followup_stage) {
+      unset(
+        $calculation_inputs['current_monthly_software_cost'],
+        $calculation_inputs['stage_2_benchmark_monthly'],
+        $calculation_inputs['stage_2_benchmark_source'],
+        $calculation_inputs['monthly_software_savings']
+      );
+      unset(
+        $calculation_outputs['current_monthly_software_cost'],
+        $calculation_outputs['monthly_software_savings'],
+        $calculation_outputs['annual_software_savings'],
+        $calculation_outputs['roi_percent']
+      );
+    }
+
+    if ($test_mode === '') {
+      $submission_id = (new SubmissionRepository())->save([
+        'questionnaire_id' => $questionnaire_id,
+        'submission_id' => $submission_id,
+        'questionnaire_name' => $full_structure['questionnaire']['name'],
+        'methodology_version' => $calc['methodology_version'],
+        'methodology_snapshot' => $calc['methodology'],
+        'email' => $email,
+        'answers' => $this->merge_submission_answers($all_answers, $calculation_answers),
+        'resolved_values' => $calc['resolved_values'],
+        'calculation_inputs' => $calculation_inputs,
+        'calculation_outputs' => $calculation_outputs,
+        'pricing_result' => $pricing,
+        'structure' => $calculation_structure,
+      ]);
+      if (is_wp_error($submission_id))
+        return $submission_id;
+    } elseif ($test_mode === 'with_email') {
+      $this->send_test_submission_notification(
+        (string) $full_structure['questionnaire']['name'],
+        $pricing,
+        $is_followup_stage
+      );
+    }
 
     // Determine the next active stage (if any).
     $next_stage = null;
@@ -754,14 +814,15 @@ class Routes
       }
     }
 
-    $submission = (new SubmissionRepository())->find($submission_id);
-    $this->queue_submission_notification((int) $submission_id, $is_followup_stage);
+    $submission = $submission_id ? (new SubmissionRepository())->find($submission_id) : null;
+    if ($submission_id && $test_mode === '')
+      $this->queue_submission_notification((int) $submission_id, $is_followup_stage);
 
     $response = [
       'submission_id' => (int) $submission_id,
       'pricing' => $pricing,
-      'calculation_outputs' => $calc['calculation_outputs'],
-      'calculation_inputs' => $calc['calculation_inputs'],
+      'calculation_outputs' => $calculation_outputs,
+      'calculation_inputs' => $calculation_inputs,
       'resolved_values' => $calc['resolved_values'],
       'answers' => $calculation_answers,
       'selected_tools' => $this->selected_report_options($calculation_structure, $calculation_answers),
@@ -817,6 +878,13 @@ class Routes
     $this->send_queued_notification($submission_id, $attach_pdf);
   }
 
+  private function send_test_submission_notification(string $questionnaire_name, array $pricing, bool $attach_pdf): void
+  {
+    $placeholder_email = 'client@eponymos-test.invalid';
+    $this->notify_submission_admin(0, $questionnaire_name, $placeholder_email, $pricing, $attach_pdf, '', true);
+    $this->notify_submission_client(0, $placeholder_email, $attach_pdf, '', true);
+  }
+
   public function send_queued_notification(int $submission_id, bool $attach_pdf = false): void
   {
     try {
@@ -841,6 +909,12 @@ class Routes
     if (!$submission)
       return;
 
+    $test_mode = (string) ($submission['test_mode'] ?? '');
+    if ($test_mode === 'without_email')
+      return;
+    $is_test = $test_mode === 'with_email';
+    $notification_email = $is_test ? 'client@eponymos-test.invalid' : (string) ($submission['email'] ?? '');
+
     $report_file = '';
     if ($attach_pdf) {
       $report_file = $this->report_file_path((int) $submission_id);
@@ -851,16 +925,18 @@ class Routes
     $this->notify_submission_admin(
       (int) $submission_id,
       (string) ($submission['questionnaire_name'] ?? ''),
-      (string) ($submission['email'] ?? ''),
+      $notification_email,
       (array) ($submission['pricing_result'] ?? []),
       $attach_pdf,
-      $report_file
+      $report_file,
+      $is_test
     );
     $this->notify_submission_client(
       (int) $submission_id,
-      (string) ($submission['email'] ?? ''),
+      $notification_email,
       $attach_pdf,
-      $report_file
+      $report_file,
+      $is_test
     );
   }
 
@@ -943,8 +1019,10 @@ class Routes
       . '</body></html>';
   }
 
-  private function notify_submission_client(int $submission_id, string $client_email, bool $attach_pdf = false, string $report_file = ''): void
+  private function notify_submission_client(int $submission_id, string $client_email, bool $attach_pdf = false, string $report_file = '', bool $is_test = false): void
   {
+    if ($is_test)
+      $client_email = 'client@eponymos-test.invalid';
     $client_email = sanitize_email($client_email);
     if (!$client_email || !is_email($client_email)) {
       FlowLog::record('email_notification', 'failed', '/eponymos/v1/submit-stage', 'Client notification skipped because no valid client email was saved.', ['submission_id' => $submission_id, 'notification_type' => 'client', 'stage' => $attach_pdf ? 'stage_2' : 'stage_1']);
@@ -955,6 +1033,8 @@ class Routes
     $subject = $attach_pdf
       ? sprintf('[%s] Your report is ready - submission #%d', wp_specialchars_decode(get_bloginfo('name'), ENT_QUOTES), $submission_id)
       : sprintf('[%s] We received your submission #%d', wp_specialchars_decode(get_bloginfo('name'), ENT_QUOTES), $submission_id);
+    if ($is_test)
+      $subject = '[TEST] ' . $subject;
 
     $message = $attach_pdf
       ? $this->build_stage_2_client_message($submission_id)
@@ -1070,13 +1150,16 @@ class Routes
       . '</body></html>';
   }
 
-  private function notify_submission_admin(int $submission_id, string $questionnaire_name, string $submitter_email, array $pricing, bool $attach_pdf = false, string $report_file = ''): void
+  private function notify_submission_admin(int $submission_id, string $questionnaire_name, string $submitter_email, array $pricing, bool $attach_pdf = false, string $report_file = '', bool $is_test = false): void
   {
-    $configured_recipients = (string) get_option('eponymos_submission_admin_email', '');
-    if (trim($configured_recipients) === '')
-      $configured_recipients = (string) get_option('admin_email', '');
-
-    $recipients = self::normalize_email_recipients([$configured_recipients]);
+    if ($is_test) {
+      $recipients = ['admin@eponymos-test.invalid'];
+    } else {
+      $configured_recipients = (string) get_option('eponymos_submission_admin_email', '');
+      if (trim($configured_recipients) === '')
+        $configured_recipients = (string) get_option('admin_email', '');
+      $recipients = self::normalize_email_recipients([$configured_recipients]);
+    }
     if (!$recipients) {
       FlowLog::record('email_notification', 'failed', '/eponymos/v1/submit-stage', 'No valid notification recipient is configured.', ['submission_id' => $submission_id, 'notification_type' => 'admin', 'stage' => $attach_pdf ? 'stage_2' : 'stage_1']);
       error_log('Eponymos submission notification skipped: no valid recipient configured.');
@@ -1086,6 +1169,8 @@ class Routes
     $subject = $attach_pdf
       ? sprintf('[%s] Stage 2 completed - submission #%d', wp_specialchars_decode(get_bloginfo('name'), ENT_QUOTES), $submission_id)
       : sprintf('[%s] New questionnaire submission #%d', wp_specialchars_decode(get_bloginfo('name'), ENT_QUOTES), $submission_id);
+    if ($is_test)
+      $subject = '[TEST] ' . $subject;
 
     $admin_message = $attach_pdf
       ? $this->build_stage_2_admin_message($submission_id, $questionnaire_name, $pricing)

@@ -37,9 +37,13 @@
     }
 
     function post(url, body) {
+      var headers = { 'Content-Type': 'application/json' };
+      if (cfg.testMode && cfg.testMode.enabled && cfg.testMode.nonce) {
+        headers['X-WP-Nonce'] = cfg.testMode.nonce;
+      }
       return fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         body: JSON.stringify(body),
       }).then(function (r) {
         return r.json().then(function (x) {
@@ -131,7 +135,7 @@
 
     /* ── Question renderer ─────────────────────────────────────────────────── */
 
-    function renderQuestion(container, question, savedAnswer) {
+    function renderQuestion(container, question, savedAnswer, maximumUsers) {
       var q = question;
       var v = savedAnswer !== undefined ? savedAnswer : (q.type === 'yes_no' ? 'no' : undefined);
       var input = '';
@@ -182,7 +186,13 @@
         }).join('');
       } else {
         var inputType = q.type === 'number' ? 'number' : q.type === 'email' ? 'email' : 'text';
+        var validation = q.validation || {};
+        var activeUsersQuestion = q.calculation_role === 'active_users' || validation.calculation_role === 'active_users';
+        var activeUsersMin = Number.isInteger(Number(validation.min)) && Number(validation.min) >= 1 ? Number(validation.min) : 1;
+        var activeUsersMax = Number(maximumUsers);
+        if (!Number.isInteger(activeUsersMax) || activeUsersMax < activeUsersMin) activeUsersMax = activeUsersMin;
         input = '<input type="' + inputType + '" name="answer" class="eponymos-text-input"' +
+          (activeUsersQuestion ? ' min="' + activeUsersMin + '" step="1" max="' + activeUsersMax + '" required' : '') +
           (q.placeholder ? ' placeholder="' + esc(q.placeholder) + '"' : '') +
           ' value="' + esc(v || '') + '">';
       }
@@ -194,13 +204,14 @@
         '<div class="eponymos-options' + (optionGroups.length > 1 ? ' eponymos-options--grouped' : '') + '">' + input + '</div>';
     }
 
-    function renderEmailGate(container, savedEmail) {
+    function renderEmailGate(container, savedEmail, testMode) {
+      var testEmail = testMode && testMode.enabled ? testMode.placeholderEmail : '';
       container.innerHTML =
         '<h2 class="eponymos-question-title">Your estimate is almost ready.</h2>' +
-        '<p class="eponymos-help-text">Enter your work email to view your Eponymos™ estimate and receive your personalized report.</p>' +
+        '<p class="eponymos-help-text">' + (testEmail ? 'Administrator test run. A placeholder email is used.' : 'Enter your work email to view your Eponymos™ estimate and receive your personalized report.') + '</p>' +
         '<div class="eponymos-options">' +
-        '<label for="eponymos-work-email">Work email</label>' +
-        '<input type="email" id="eponymos-work-email" class="eponymos-text-input" data-email required placeholder="name@company.com" value="' + esc(savedEmail || '') + '">' +
+        '<label for="eponymos-work-email">' + (testEmail ? 'Test placeholder email' : 'Work email') + '</label>' +
+        '<input type="email" id="eponymos-work-email" class="eponymos-text-input" data-email required placeholder="name@company.com" value="' + esc(testEmail || savedEmail || '') + '"' + (testEmail ? ' readonly' : '') + '>' +
         '</div>' +
         '<button type="button" class="eponymos-btn eponymos-btn--primary" data-submit-stage>View my estimate</button>';
     }
@@ -214,7 +225,7 @@
       var isNetworked = pricing.plan === 'networked';
       var hasPrice = !isNetworked && pricing.monthly_estimate !== null && pricing.monthly_estimate !== undefined && pricing.monthly_estimate !== '' && Number.isFinite(Number(pricing.monthly_estimate));
       var estimate = hasPrice ? Number(pricing.monthly_estimate) : null;
-      var annualPeriods = Number(result.calculation_inputs && result.calculation_inputs.annual_periods || 12);
+      var annualPeriods = Number(result.calculation_inputs && result.calculation_inputs.annual_periods || 0);
       var annualEponymos = hasPrice ? Number(outputs.annual_investment || estimate * annualPeriods) : null;
       var annualValue = Number(outputs.total_annual_value || 0);
       var selectedTools = Array.isArray(result.selected_tools) ? result.selected_tools : [];
@@ -272,7 +283,7 @@
         ? '<div><strong>' + esc(formatMoney(annualSavingsDisplay)) + '</strong><span>software savings / year</span></div>'
         : '';
       var lowerCostBenefit = isNetworked
-        ? '<article><h4>Custom Networked pricing</h4><p>Contact our team to discuss pricing for your organisation.</p><a class="eponymos-btn eponymos-btn--primary" href="/contact/">Contact us</a></article>'
+        ? '<article><h4>Custom Networked pricing</h4><p>Contact our team to discuss pricing for your organisation.</p><a class="eponymos-btn eponymos-btn--primary" href="/contact-us/">Contact us</a></article>'
         : annualSavingsDisplay > 0
         ? '<article><h4>Lower total cost</h4><p>Consolidate tools and save ' + esc(formatMoney(annualSavingsDisplay)) + ' every year.</p></article>'
         : '<article><h4>Cost comparison</h4><p>No software-cost saving is projected from the answers provided.</p></article>';
@@ -284,14 +295,14 @@
         return '<li><span>' + esc(label) + (category ? '<small>' + esc(category) + '</small>' : '') + '</span>';
       }).join('');
       var pricingComparison = isNetworked
-        ? '<section class="eponymos-report-cta"><div><h3>Networked pricing</h3><p>Networked pricing is tailored to your organisation. Contact our team to discuss your requirements.</p></div><a class="eponymos-btn eponymos-btn--primary eponymos-report-button" href="/contact/">Contact us for pricing</a></section>'
+        ? '<section class="eponymos-report-cta"><div><h3>Networked pricing</h3><p>Networked pricing is tailored to your organisation. Contact our team to discuss your requirements.</p></div><a class="eponymos-btn eponymos-btn--primary eponymos-report-button" href="/contact-us/">Contact us for pricing</a></section>'
         : '<section class="eponymos-report-comparison"><h3>Your current PR tools vs Eponymos&trade;</h3><div class="eponymos-report-columns"><div class="eponymos-report-card"><h4>Your current PR tools</h4><ul>' + selectedToolRows + '</ul><p class="eponymos-report-total"><span>Monthly spend ' + esc(spendBasis) + '</span><strong>' + esc(formatMoney(currentMonthlySpend)) + '<small>month</small></strong></p></div><div class="eponymos-report-vs" aria-hidden="true">VS</div><div class="eponymos-report-card eponymos-report-card--eponymos"><h4>Eponymos&trade;</h4><ul>' + (selectedCategories.length ? selectedCategories.map(function (category) { var label = categoryLabels[category] || category; return '<li><span>' + esc(label) + '</span></li>'; }).join('') : '<li><span>No software categories selected</span></li>') + '</ul><p class="eponymos-report-total"><span>Your Eponymos&trade; estimate</span><strong>' + esc(formatMoney(selectedCategoryTotal)) + '<small>month</small></strong></p></div></div></section>';
       var html =
         '<div class="eponymos-stage-two-report">' +
         '<main class="eponymos-report-content">' +
         '<section class="eponymos-report-intro">' +
         '<div><h2>Here is your personalized PR tech needs report</h2><p>Based on your answers, we\'ve analysed your current setup and created a recommendation to help you work smarter, simplify your stack and tell better stories.</p></div>' +
-        '<div class="eponymos-report-monthly"><span>' + (isNetworked ? 'Networked pricing' : 'Your monthly estimate') + '</span>' + (isNetworked ? '<a class="eponymos-btn eponymos-btn--primary" href="/contact/">Contact us</a>' : '<strong>' + esc(formatMoney(selectedCategoryTotal)) + '</strong>') + '</div>' +
+        '<div class="eponymos-report-monthly"><span>' + (isNetworked ? 'Networked pricing' : 'Your monthly estimate') + '</span>' + (isNetworked ? '<a class="eponymos-btn eponymos-btn--primary" href="/contact-us/">Contact us</a>' : '<strong>' + esc(formatMoney(selectedCategoryTotal)) + '</strong>') + '</div>' +
         '</section>' +
         pricingComparison +
         '<p class="eponymos-report-summary">' + stageTwoSummary + '</p>' +
@@ -309,7 +320,7 @@
         (isNetworked ? '' : '<section class="eponymos-report-savings"><h3>See how Eponymos&trade; saves you money</h3><p>Against boilerplate software costs, Eponymos&trade; works with every new licence and platform. Eponymos&trade; keeps your tech stack consolidated and you with total actual usage.</p>' +
         '<div class="eponymos-report-chart"><div class="eponymos-report-chart-labels"><span><b>Selected tools</b><strong>' + esc(formatMoney(annualTraditional)) + ' year</strong></span><span><b>Eponymos&trade;</b><strong>' + esc(formatMoney(annualEponymos)) + ' year</strong></span></div><svg viewBox="0 0 620 150" role="img" aria-label="Comparison of selected tools and Eponymos annual costs"><g class="eponymos-report-grid"><line x1="42" y1="20" x2="590" y2="20"></line><line x1="42" y1="55" x2="590" y2="55"></line><line x1="42" y1="90" x2="590" y2="90"></line><line x1="42" y1="125" x2="590" y2="125"></line></g><polyline class="eponymos-report-line eponymos-report-line--traditional" points="44,24 130,30 220,34 310,40 400,44 490,50 580,54"></polyline><polyline class="eponymos-report-line eponymos-report-line--eponymos" points="44,116 130,116 220,116 310,116 400,116 490,116 580,116"></polyline><g class="eponymos-report-axis"><text x="0" y="24">$20K</text><text x="0" y="59">$10K</text><text x="0" y="94">$5K</text><text x="0" y="129">$0</text><text x="44" y="143">1</text><text x="130" y="143">2</text><text x="220" y="143">3</text><text x="310" y="143">4</text><text x="400" y="143">5</text><text x="490" y="143">6</text></g></svg><span class="eponymos-report-chart-title">Spend over 12 months</span></div></section>' +
         stageTwoSavingsCallout +
-        '<p class="eponymos-savings-footnote">Legacy PR software means established media database, monitoring and distribution platforms sold on annual contracts. Benchmarks: $10,000/yr (1-5 users), $16,700/yr (6-15), $69,100/yr (16+), from buyer-reported Vendr and SpendHound data (2026). Costs vary by users, modules and terms; features are not identical. Your Eponymos cost depends on actual usage.</p>') +
+        '<p class="eponymos-savings-footnote">Legacy PR software means established media database, monitoring and distribution platforms sold on annual contracts. The benchmark is interpolated from the configured legacy comparison anchors. Costs vary by users, modules and terms; features are not identical. Your Eponymos cost depends on actual usage.</p>') +
         '<div class="eponymos-report-download">' +
         (result.report_url
           ? '<a class="eponymos-btn eponymos-btn--primary" href="' + esc(result.report_url) + '" target="_blank" rel="noopener" download>Download full report (PDF)</a>'
@@ -334,8 +345,8 @@
         ['Monthly estimate',            isNetworked ? 'Contact us for pricing' : fmt(pricing.monthly_estimate)],
         ['Active user days',            Number(pricing.active_user_days || 0).toLocaleString()],
         ['Annual software savings',     isNetworked ? 'Not available without a quote' : fmt(outputs.annual_software_savings)],
-        ['Current tools per year',      fmt(Number(inputs.current_monthly_software_cost || 0) * Number(inputs.annual_periods || 12))],
-        ['Eponymos per year',           isNetworked ? 'Contact us for pricing' : fmt(Number(pricing.monthly_estimate || 0) * Number(inputs.annual_periods || 12))],
+        ['Current tools per year',      fmt(Number(inputs.current_monthly_software_cost || 0) * Number(inputs.annual_periods || 0))],
+        ['Eponymos per year',           isNetworked ? 'Contact us for pricing' : fmt(Number(pricing.monthly_estimate || 0) * Number(inputs.annual_periods || 0))],
       ];
       if (!isNetworked) rows.splice(2, 0, ['Rate per active user day', fmt(pricing.price_per_active_user_day)]);
       var tableRows = rows.map(function (r) {
@@ -355,7 +366,7 @@
         '<table><thead><tr><th>Metric</th><th style="text-align:right">Value</th></tr></thead><tbody>' +
         tableRows +
         '</tbody></table>' +
-        (isNetworked ? '<p><a href="/contact/" style="display:inline-block;padding:10px 16px;background:#d94f87;color:#fff;text-decoration:none;font-weight:700;border-radius:4px">Contact us for Networked pricing</a></p>' : '') +
+        (isNetworked ? '<p><a href="/contact-us/" style="display:inline-block;padding:10px 16px;background:#d94f87;color:#fff;text-decoration:none;font-weight:700;border-radius:4px">Contact us for Networked pricing</a></p>' : '') +
         '<p class="footer">Generated by Eponymos Questionnaire. This estimate is based on your answers and the configured calculation methodology.</p>' +
         '</body></html>';
     }
@@ -367,7 +378,9 @@
         var estimateTitle = questionnaire.querySelector('.eponymos-estimate-title h2');
         var estimateDescription = questionnaire.querySelector('.eponymos-estimate-title p');
         if (estimateTitle) {
-          estimateTitle.textContent = stageIndex > 0 ? 'Get your full PR Tech Needs Report' : 'Build your Eponymos™ plan';
+          estimateTitle.textContent = cfg.testMode && cfg.testMode.enabled
+            ? cfg.testMode.title
+            : (stageIndex > 0 ? 'Get your full PR Tech Needs Report' : 'Build your Eponymos™ plan');
         }
         if (estimateDescription) {
           estimateDescription.textContent = stageIndex > 0 ? 'Your report is ready!' : 'Your estimate is ready!';
@@ -397,7 +410,7 @@
             '<h3>' + (isNetworked ? 'Discuss Networked pricing' : 'Ready to take the next step?') + '</h3>' +
             '<p>' + (isNetworked ? 'Networked pricing is tailored to your organisation. Contact our team to discuss your requirements.' : 'Talk to our team about your results and see how Eponymos™ could work for your organisation.') + '</p>' +
             '</div>' +
-            '<a class="eponymos-btn eponymos-btn--primary eponymos-report-button" href="/contact/">' +
+            '<a class="eponymos-btn eponymos-btn--primary eponymos-report-button" href="/contact-us/">' +
             (isNetworked ? 'Contact us for pricing' : 'Talk to our team') + ' <span class="dashicons dashicons-arrow-right-alt" aria-hidden="true"></span>' +
             '</a>' +
             '</section>';
@@ -410,7 +423,7 @@
       var isNetworked = pricing.plan === 'networked';
       var hasPrice = !isNetworked && pricing.monthly_estimate !== null && pricing.monthly_estimate !== undefined && pricing.monthly_estimate !== '' && Number.isFinite(Number(pricing.monthly_estimate));
       var estimate = hasPrice
-        ? '$' + Number(pricing.monthly_estimate).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+        ? '$' + Number(pricing.monthly_estimate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
         : null;
       var activeDays = Number(pricing.active_user_days || 0);
       var unitPrice = Number(pricing.price_per_active_user_day || 0);
@@ -443,18 +456,24 @@
       var savingsCallout = !isNetworked && stageOneSavings > 0
         ? '<div class="eponymos-savings-callout"><span>$</span><p>Potentially save <strong>' + esc(savingsText) + ' per year</strong><br>' + esc(legacyComparison) + '</p></div>'
         : '';
-      var legacyFootnote = '<p class="eponymos-savings-footnote">Legacy PR software means established media database, monitoring and distribution platforms sold on annual contracts. Benchmarks: $10,000/yr (1-5 users), $16,700/yr (6-15), $69,100/yr (16+), from buyer-reported Vendr and SpendHound data (2026). Costs vary by users, modules and terms; features are not identical. Your Eponymos cost depends on actual usage.</p>';
+      var legacyFootnote = '<p class="eponymos-savings-footnote">Legacy PR software means established media database, monitoring and distribution platforms sold on annual contracts. The benchmark is interpolated from the configured legacy comparison anchors. Costs vary by users, modules and terms; features are not identical. Your Eponymos cost depends on actual usage.</p>';
       var upgradeHtml = (pricing.upgrade_offers || []).map(function (offer) {
         return '<div class="eponymos-upgrade-callout"><strong>Optional ' + esc(String(offer.plan || '').charAt(0).toUpperCase() + String(offer.plan || '').slice(1)) + ' upgrade</strong><br>' + esc('$' + Number(offer.monthly_difference || 0).toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' more per month') + '<br><small>' + esc(offer.message || '') + '</small></div>';
       }).join('');
+      var enterpriseContactHtml = pricing.enterprise_contact_required && !isNetworked
+        ? '<div class="eponymos-upgrade-callout"><strong>Professional</strong><br>' + esc('$' + Number(pricing.professional_monthly || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })) + '/month<br><strong>Enterprise</strong><br><a href="/contact-us/">' + esc(pricing.enterprise_contact_label || 'Contact us for Enterprise pricing') + '</a></div>'
+        : '';
       var nudgeHtml = (pricing.nudges || []).map(function (nudge) {
         return '<p class="eponymos-plan-nudge">' + esc(nudge) + '</p>';
       }).join('');
       var estimateMarkup = isNetworked
-        ? '<a class="eponymos-btn eponymos-btn--primary" href="/contact/">Contact us for pricing</a>'
+        ? '<a class="eponymos-btn eponymos-btn--primary" href="/contact-us/">Contact us for pricing</a>'
         : '<strong>' + esc(estimate || 'Price unavailable') + '</strong>' + (hasPrice ? '<small>' + esc(activeDays.toLocaleString(undefined, { maximumFractionDigits: 0 })) + ' active user days x $' + esc(unitPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })) + '</small>' : '');
+      var casualUsageComparison = pricing.plan === 'professional'
+        ? '<small class="eponymos-casual-comparison">Casual at your usage: $' + esc(Number(pricing.casual_monthly || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })) + ' per month</small>'
+        : '';
       var payNote = isNetworked
-        ? '<p class="eponymos-pay-note">Networked pricing is tailored to your organisation. <a href="/contact/">Contact us</a> to discuss your requirements.</p>'
+        ? '<p class="eponymos-pay-note">Networked pricing is tailored to your organisation. <a href="/contact-us/">Contact us</a> to discuss your requirements.</p>'
         : '<p class="eponymos-pay-note"><strong>You only pay when Eponymos™ is used.</strong><br>$' + esc(unitPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })) + ' per active user, per day — based on your billable team usage.</p>';
 
       var html =
@@ -466,6 +485,7 @@
         '<div class="eponymos-estimate-summary">' +
         '<span>' + esc(isNetworked ? 'Networked pricing' : planLabel + ' plan — monthly estimate') + '</span>' +
         estimateMarkup +
+        casualUsageComparison +
         '</div>' +
         '<section class="eponymos-plan-path-section" aria-label="How your estimate is calculated"><div class="eponymos-plan-path">' +
         '<div><strong>' + esc(users.toLocaleString(undefined, { maximumFractionDigits: 1 })) + '</strong><span>people</span></div><b>&rarr;</b>' +
@@ -476,7 +496,7 @@
         '</div>' +
         '</section>' +
         '</div>' +
-        '<div class="eponymos-plan-details">' + savingsCallout + upgradeHtml + nudgeHtml + (isNetworked ? '' : legacyFootnote) + '</div>' +
+        '<div class="eponymos-plan-details">' + savingsCallout + upgradeHtml + enterpriseContactHtml + nudgeHtml + (isNetworked ? '' : legacyFootnote) + '</div>' +
         '</div>' +
         '</section>' +
 
@@ -536,7 +556,7 @@
       this.onComplete = onComplete;
       this.onNavigateStage = onNavigateStage;
       this.stageIndex = stageIndex;
-      this.submissionId = submissionId || 0;
+      this.submissionId = cfg.testMode && cfg.testMode.enabled ? 0 : (submissionId || 0);
       this.isFollowupStage = isFollowupStage(stage, stageIndex);
 
       this.questions = stage.questions || [];
@@ -545,7 +565,7 @@
       this.email = '';
       try {
         this.email = localStorage.getItem('eponymos_email_' + this.questionnaire.id) || '';
-        if (!this.submissionId)
+        if (!this.submissionId && !(cfg.testMode && cfg.testMode.enabled))
           this.submissionId = Number(localStorage.getItem('eponymos_submission_id_' + this.questionnaire.id) || 0);
       } catch (e) { }
 
@@ -631,10 +651,26 @@
       if (!q) { self._showEmailGate(); return; }
 
       var stageEl = self.questionScreen.querySelector('.eponymos-stage');
-      renderQuestion(stageEl, q, self.answers[q.question_key]);
+      renderQuestion(stageEl, q, self.answers[q.question_key], cfg.maximumUsers);
 
       stageEl.querySelectorAll('input, textarea, select').forEach(function (field) {
         field.addEventListener('input', function () {
+          var question = self.questions[self.questionIndex];
+          var validation = question && question.validation || {};
+          var activeUsersQuestion = question && (question.calculation_role === 'active_users' || validation.calculation_role === 'active_users');
+          if (field.type === 'number' && activeUsersQuestion) {
+            var count = Number(field.value);
+            var maximum = Number(cfg.maximumUsers);
+            if (!Number.isInteger(maximum) || maximum < 1) maximum = 1;
+            if (!field.value.trim() || !Number.isSafeInteger(count) || count < 1) {
+              self._setError('Please enter a valid number, e.g. 1, 2, 32.');
+            } else if (count > maximum) {
+              self._setError('For more than ' + maximum + ' users, continue to receive Contact Us pricing.');
+            } else {
+              self._clearError();
+            }
+            return;
+          }
           if (field.type === 'radio' || field.type === 'checkbox') {
             self._clearError();
             return;
@@ -759,6 +795,13 @@
         }
       }
 
+      var validation = q.validation || {};
+      var activeUsersQuestion = q.calculation_role === 'active_users' || validation.calculation_role === 'active_users';
+      if (activeUsersQuestion && (!Number.isSafeInteger(Number(value)) || Number(value) < 1)) {
+        self._setError('Please enter a valid number, e.g. 1, 2, 32.');
+        return false;
+      }
+
       self.answers[q.question_key] = value;
       saveCurrentAnswers(self.questionnaire.id, self.answers);
       self._clearError();
@@ -788,7 +831,10 @@
     StageController.prototype._showEmailGate = function () {
       var self = this;
       var stageEl = self.emailScreen.querySelector('.eponymos-stage');
-      renderEmailGate(stageEl, self.email);
+      if (cfg.testMode && cfg.testMode.enabled) {
+        self.email = cfg.testMode.placeholderEmail;
+      }
+      renderEmailGate(stageEl, self.email, cfg.testMode);
       self.submitBtn = stageEl.querySelector('[data-submit-stage]');
       self.submitBtn.addEventListener('click', self.onSubmit);
 
@@ -821,7 +867,9 @@
       var self = this;
       var stageEl = self.emailScreen.querySelector('.eponymos-stage');
       var emailEl = stageEl.querySelector('[data-email]');
-      var email = emailEl ? emailEl.value.trim() : self.email;
+      var email = cfg.testMode && cfg.testMode.enabled
+        ? cfg.testMode.placeholderEmail
+        : (emailEl ? emailEl.value.trim() : self.email);
 
       if (!self.isFollowupStage && (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))) {
         self._setError('Please enter a valid work email address.');
@@ -851,6 +899,7 @@
         answers: self.answers,
         all_answers: allAnswers,
         email: self.email,
+        test_mode: cfg.testMode && cfg.testMode.enabled ? cfg.testMode.mode : '',
       }).then(function (result) {
         self._finishLoadingSequence(function () {
           self.onComplete(result, result.next_stage || null);
@@ -957,10 +1006,12 @@
         self.questionnaire,
         self.screens,
         function (result, nextStage) {
-          self.submissionId = Number(result.submission_id || self.submissionId || 0);
-          try {
-            localStorage.setItem('eponymos_submission_id_' + self.questionnaire.id, String(self.submissionId));
-          } catch (e) { }
+          self.submissionId = cfg.testMode && cfg.testMode.enabled ? 0 : Number(result.submission_id || self.submissionId || 0);
+          if (!(cfg.testMode && cfg.testMode.enabled)) {
+            try {
+              localStorage.setItem('eponymos_submission_id_' + self.questionnaire.id, String(self.submissionId));
+            } catch (e) { }
+          }
           self._showStageResult(stage, result, nextStage);
         },
         function (targetIndex) {

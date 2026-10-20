@@ -39,7 +39,7 @@ class ReportEngine
                     ['label' => 'Active user days',       'value' => $this->fmt_number($pricing['active_user_days'] ?? null)],
                     ['label' => 'Rate per active user day', 'value' => $this->fmt_currency($pricing['price_per_active_user_day'] ?? null)],
                     ['label' => 'Monthly estimate',       'value' => $is_networked ? 'Contact us for pricing' : $this->fmt_currency($pricing['monthly_estimate'] ?? null)],
-                    ...($is_networked ? [['label' => 'Contact', 'value' => '/contact/']] : []),
+                    ...($is_networked ? [['label' => 'Contact', 'value' => '/contact-us/']] : []),
                 ],
             ];
         }

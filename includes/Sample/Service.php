@@ -4,6 +4,7 @@ namespace Eponymos\Sample;
 
 use Eponymos\Library\OptionRepository;
 use Eponymos\Library\QuestionRepository;
+use Eponymos\Calculation\Methodology;
 
 class Service
 {
@@ -50,9 +51,12 @@ class Service
     private function create_library_samples(): array
     {
         $repository = new OptionRepository();
+        $methodology = Methodology::load();
+        $competitorCosts = (array) $methodology->get('competitor_costs', []);
+        $frequencyDays = (array) $methodology->get('usage.frequency_days', []);
         $groups = [
-            ['PR software', [['Cision', 'cision', '1800'], ['Sprout Social', 'sprout_social', '900'], ['New Tool', 'new_tool', '1200']]],
-            ['Usage frequency', [['Every working day', 'every_working_day', '21'], ['Most days', 'most_days', '15'], ['A few days a week', 'few_days_a_week', '8'], ['Occasionally', 'occasionally', '4']]],
+            ['PR software', [['Cision', 'cision', $competitorCosts['cision']['value'] ?? ''], ['Muck Rack', 'muck_rack', $competitorCosts['muck_rack']['value'] ?? ''], ['Meltwater', 'meltwater', $competitorCosts['meltwater']['value'] ?? '']]],
+            ['Usage frequency', [['Every working day', 'every_working_day', $frequencyDays['every_working_day'] ?? ''], ['Most days', 'most_days', $frequencyDays['most_days'] ?? ''], ['A few days a week', 'few_days_a_week', $frequencyDays['few_days_a_week'] ?? ''], ['Occasionally', 'occasionally', $frequencyDays['occasionally'] ?? '']]],
             ['Team size', [['Solo', 'solo', '1'], ['Small team', 'small_team', '5'], ['Large team', 'large_team', '20']]],
             ['Organisation type', [['Agency', 'agency', '1'], ['In-house', 'in_house', '1'], ['Non-profit', 'non_profit', '1']]],
             ['Publishing channels', [['One channel', 'one_channel', '1'], ['Two channels', 'two_channels', '2'], ['Three or more', 'three_or_more', '3']]],

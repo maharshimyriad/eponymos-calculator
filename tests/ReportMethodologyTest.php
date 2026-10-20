@@ -3,6 +3,7 @@
 namespace Eponymos\Tests;
 
 use Eponymos\Calculation\ReportMethodology;
+use Eponymos\Calculation\Methodology;
 use PHPUnit\Framework\TestCase;
 
 class ReportMethodologyTest extends TestCase
@@ -42,5 +43,33 @@ class ReportMethodologyTest extends TestCase
         $this->assertNull($result['hours_reclaimed']);
         $this->assertNull($result['annual_productivity_value']);
         $this->assertSame(4644.0, $result['total_annual_value']);
+    }
+
+    public function testNoToolSpendLeavesSoftwareSavingsAndRoiUnavailable(): void
+    {
+        $result = (new ReportMethodology())->calculate([
+            'current_monthly_software_cost' => 0,
+            'monthly_price' => 863,
+            'annual_periods' => 12,
+            'pitches_per_month' => 10,
+            'current_hours_per_pitch' => 3,
+            'new_hours_per_pitch' => 1.2,
+            'hourly_rate' => 65,
+        ]);
+
+        $this->assertNull($result['monthly_software_savings']);
+        $this->assertNull($result['annual_software_savings']);
+        $this->assertNull($result['roi_percent']);
+        $this->assertSame(14040.0, $result['annual_productivity_value']);
+    }
+
+    public function testLegacyPerUserSpendSettingIsIgnored(): void
+    {
+        $methodology = new Methodology([
+            'pricing' => ['current_software_cost_per_user' => 1000],
+        ]);
+
+        $this->assertNull($methodology->get('pricing.current_software_cost_per_user'));
+        $this->assertArrayNotHasKey('current_software_cost_per_user', $methodology->all()['pricing']);
     }
 }

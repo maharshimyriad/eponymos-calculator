@@ -166,6 +166,7 @@ class Admin
             'eponymos_page_eponymos-option-library'   => 'option_library',
             'eponymos_page_eponymos-submissions'      => 'submissions',
             'eponymos_page_eponymos-methodology'       => 'methodology',
+            'eponymos_page_eponymos-settings'          => 'settings',
                         'eponymos_page_eponymos-samples'          => 'samples',
         ];
         return $map[$hook] ?? null;

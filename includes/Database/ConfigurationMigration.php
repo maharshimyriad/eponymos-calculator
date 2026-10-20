@@ -4,7 +4,7 @@ namespace Eponymos\Database;
 
 class ConfigurationMigration
 {
-    const VERSION = '1.0.7';
+    const VERSION = '1.0.8';
 
     public static function run(): void
     {
@@ -52,37 +52,22 @@ class ConfigurationMigration
             'label' => 'How many people will need access to Eponymos™?',
             'internal_name' => 'Active users',
             'question_key' => 'active_users',
-            'type' => 'single_choice',
+            'type' => 'number',
             'required' => 1,
             'help_text' => '',
             'placeholder' => '',
-            'validation' => wp_json_encode(['calculation_role' => 'active_users']),
+            'validation' => wp_json_encode(['calculation_role' => 'active_users', 'min' => 1, 'max' => (int) \Eponymos\Calculation\Methodology::load()->get('pricing.maximum_users')]),
             'calculation_eligible' => 1,
             'position' => 1,
         ]);
         $question_id = (int) $wpdb->insert_id;
         if (!$question_id) return;
 
-        $options = [
-            ['1', '1', '1'],
-            ['2_5', '2–5', '3.5'],
-            ['6_10', '6–10', '8'],
-            ['11_25', '11–25', '18'],
-            ['26_plus', '26+', '26'],
-        ];
-        foreach ($options as $position => $option) {
-            $wpdb->insert($prefix . 'options', [
-                'question_id' => $question_id,
-                'label' => $option[1],
-                'option_key' => $option[0],
-                'calculation_value' => $option[2],
-                'position' => $position,
-            ]);
-        }
     }
 
     private static function normalize_pricing_stage($wpdb, string $prefix): void
     {
+        $methodology = \Eponymos\Calculation\Methodology::load();
         $stage_id = (int) $wpdb->get_var("SELECT id FROM {$prefix}stages WHERE title='Stage 1' AND status='active' ORDER BY id LIMIT 1");
         if (!$stage_id) return;
 
@@ -92,7 +77,7 @@ class ConfigurationMigration
                 'label' => 'How many people will need access to Eponymos™?',
                 'internal_name' => 'Team size',
                 'type' => 'number',
-                'validation' => wp_json_encode(['calculation_role' => 'active_users', 'min' => 1, 'max' => 500]),
+                'validation' => wp_json_encode(['calculation_role' => 'active_users', 'min' => 1, 'max' => (int) $methodology->get('pricing.maximum_users')]),
                 'calculation_eligible' => 1,
                 'position' => 1,
             ], ['id' => $active_users_id], ['%s', '%s', '%s', '%s', '%d', '%d'], ['%d']);
@@ -122,13 +107,18 @@ class ConfigurationMigration
         }
         if ($active_days_id) {
             $wpdb->delete($prefix . 'options', ['question_id' => $active_days_id], ['%d']);
-            foreach ([
-                ['Every working day', 'every_working_day', 21],
-                ['Most days', 'most_days', 15],
-                ['A few days a week', 'few_days_a_week', 8],
-                ['Occasionally', 'occasionally', 4],
-            ] as $position => $option) {
+            $frequencyLabels = [
+                'every_working_day' => 'Every working day',
+                'most_days' => 'Most days',
+                'few_days_a_week' => 'A few days a week',
+                'occasionally' => 'Occasionally',
+            ];
+            $position = 0;
+            foreach ((array) $methodology->get('usage.frequency_days', []) as $optionKey => $days) {
+                if (!isset($frequencyLabels[$optionKey])) continue;
+                $option = [$frequencyLabels[$optionKey], $optionKey, $days];
                 $wpdb->insert($prefix . 'options', ['question_id' => $active_days_id, 'label' => $option[0], 'option_key' => $option[1], 'calculation_value' => $option[2], 'position' => $position]);
+                $position++;
             }
         }
 
@@ -161,19 +151,6 @@ class ConfigurationMigration
 
     private static function normalize_savings_inputs($wpdb, string $prefix): void
     {
-        $spend_group_id = (int) $wpdb->get_var($wpdb->prepare("SELECT option_group_id FROM {$prefix}library_questions WHERE question_key=%s LIMIT 1", 'pr_and_comms'));
-        if ($spend_group_id) {
-            $spend_values = [
-                'under_500' => 250,
-                '500_2_000' => 1250,
-                '2_000_5_000' => 3500,
-                '5_000' => 5000,
-            ];
-            foreach ($spend_values as $option_key => $value) {
-                $wpdb->update($prefix . 'library_options', ['calculation_value' => $value], ['group_id' => $spend_group_id, 'option_key' => $option_key], ['%s'], ['%d', '%s']);
-            }
-        }
-
         $tool_question_id = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM {$prefix}library_questions WHERE question_key=%s LIMIT 1", 'tools_or_platforms_pr_software'));
         if ($tool_question_id) {
             $wpdb->update($prefix . 'library_questions', [
@@ -184,11 +161,7 @@ class ConfigurationMigration
         }
         $wpdb->query($wpdb->prepare("UPDATE {$prefix}questions SET type='multiple_choice', validation=%s, calculation_eligible=1 WHERE question_key=%s", wp_json_encode(['calculation_role' => 'software_savings', 'option_group_ids' => [21, 22, 23]]), 'tools_or_platforms_pr_software'));
 
-        $tool_values = ['cision' => 1052, 'muck_rack' => 1083, 'meltwater' => 2150];
-        foreach ($tool_values as $option_key => $value) {
-            $wpdb->update($prefix . 'library_options', ['calculation_value' => $value], ['group_id' => 21, 'option_key' => $option_key], ['%s'], ['%d', '%s']);
-        }
-        $wpdb->update($prefix . 'option_groups', ['description' => 'Vendr median annual contracts, February 2026, converted to monthly values.'], ['id' => 21], ['%s'], ['%d']);
+        $wpdb->update($prefix . 'option_groups', ['description' => 'Competitor pricing values are managed in Calculation Methodology.'], ['id' => 21], ['%s'], ['%d']);
         $wpdb->query("DELETE FROM {$prefix}library_options WHERE group_id IN (22,23) AND option_key <> 'none_not_sure'");
         $wpdb->query("DELETE FROM {$prefix}library_options WHERE group_id=21 AND option_key IN ('prowly','agility_pr')");
     }
