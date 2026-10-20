@@ -67,7 +67,11 @@ class Repository
                 if ($library) {
                     $library['validation'] = json_decode($library['validation'], true) ?: [];
                     $x = array_merge($x, $library, ['id' => $x['id'], 'stage_id' => $x['stage_id'], 'position' => $x['position'], 'options' => $x['options'], 'library_question_id' => $library['id']]);
-                    $option_group_ids = array_slice(array_values(array_filter(array_map('absint', (array)($library['validation']['option_group_ids'] ?? [])))), 0, 6);
+                    $option_group_ids = array_values(array_unique(array_filter(array_map('absint', (array) ($library['validation']['option_group_ids'] ?? [])))));
+                    $primary_option_group_id = absint($library['option_group_id'] ?? 0);
+                    if ($primary_option_group_id && !in_array($primary_option_group_id, $option_group_ids, true)) {
+                        $option_group_ids[] = $primary_option_group_id;
+                    }
                     if ($option_group_ids) {
                         $x['option_groups'] = [];
                         foreach ($option_group_ids as $group_id) {

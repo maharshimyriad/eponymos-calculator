@@ -34,6 +34,9 @@ class ThemeSettingsIntegration
         register_setting(self::GROUP, 'eponymos_test_mode', [
             'sanitize_callback' => [$this, 'sanitize_test_mode'],
         ]);
+        register_setting(self::GROUP, 'eponymos_test_email_allowlist', [
+            'sanitize_callback' => [$this, 'sanitize_test_email_allowlist'],
+        ]);
 
         // Add the plugin settings section.
         add_settings_section(
@@ -88,6 +91,7 @@ class ThemeSettingsIntegration
         );
 
         add_settings_field('eponymos_test_mode_enabled', __('Test mode', 'eponymos'), [$this, 'field_test_mode_enabled'], self::PAGE, self::SECTION);
+        add_settings_field('eponymos_test_email_allowlist', __('Test email allowlist', 'eponymos'), [$this, 'field_test_email_allowlist'], self::PAGE, self::SECTION);
     }
 
     public function menu(): void
@@ -180,6 +184,13 @@ class ThemeSettingsIntegration
         echo '</fieldset>';
     }
 
+    public function field_test_email_allowlist(): void
+    {
+        $emails = get_option('eponymos_test_email_allowlist', 'blahblah@blahblah.com, test@email.com');
+        echo '<textarea name="eponymos_test_email_allowlist" rows="4" class="large-text" placeholder="tester@example.com, qa@example.com">' . esc_textarea($emails) . '</textarea>';
+        echo '<p class="description">' . esc_html__('Any submissions from these addresses bypass the database and notification email flow. Separate addresses with commas or one per line. Default test addresses: blahblah@blahblah.com and test@email.com.', 'eponymos') . '</p>';
+    }
+
     // ── Sanitizers ────────────────────────────────────────────────────────────
 
     public function sanitize_pricing($v): array
@@ -208,6 +219,20 @@ class ThemeSettingsIntegration
     public function sanitize_test_mode($value): string
     {
         return in_array($value, ['without_email', 'with_email'], true) ? $value : 'without_email';
+    }
+
+    public function sanitize_test_email_allowlist($value): string
+    {
+        $emails = preg_split('/[\r\n,]+/', (string) $value, -1, PREG_SPLIT_NO_EMPTY);
+        $emails = array_map('trim', $emails ?: []);
+        $valid = [];
+        foreach ($emails as $email) {
+            $email = strtolower(sanitize_email($email));
+            if ($email !== '' && is_email($email) && !in_array($email, $valid, true)) {
+                $valid[] = $email;
+            }
+        }
+        return implode(', ', $valid);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

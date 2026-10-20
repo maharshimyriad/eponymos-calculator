@@ -146,8 +146,8 @@ class PricingServiceTest extends TestCase
             [18, 21, 1890, 1363, 2879, 'professional', 1363, 528, 4841],
             [36, 21, 3780, 2863, 2879, 'professional', 2863, 918, 13790],
             [37, 21, 3885, 2946, 2879, 'enterprise', 2879, 1006, 15087],
-            [60, 21, 6300, 4863, null, 'professional', 4863, 1438, 25721],
-            [100, 21, 10500, 8196, null, 'professional', 8196, 2304, 45607],
+            [60, 21, 6300, 4863, null, 'professional', 4863, 1438, 10750],
+            [100, 21, 10500, 8196, null, 'professional', 8196, 2304, 0],
             [5, 8, 200, 696, 2879, 'casual', 200, 0, 7600],
             [12, 8, 480, 863, 2879, 'casual', 480, 0, 8930],
             [20, 8, 800, 1529, 2879, 'casual', 800, 0, 14586],
@@ -221,6 +221,18 @@ class PricingServiceTest extends TestCase
         foreach ([5 => 10000.0, 15 => 16700.0, 50 => 69100.0] as $users => $expectedBenchmark) {
             $result = $service->calculate(['active_users' => $users, 'active_days' => 21], $methodology);
             $this->assertSame($expectedBenchmark, $result['legacy_benchmark_annual']);
+        }
+    }
+
+    public function testLegacyBenchmarkDoesNotExtrapolatePastEnterpriseAnchor(): void
+    {
+        $service = new PricingService();
+        $methodology = $this->methodology();
+
+        foreach ([50, 60, 500] as $users) {
+            $result = $service->calculate(['active_users' => $users, 'active_days' => 21], $methodology);
+
+            $this->assertSame(69100.0, $result['legacy_benchmark_annual']);
         }
     }
 

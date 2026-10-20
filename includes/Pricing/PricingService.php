@@ -90,15 +90,16 @@ class PricingService
         $legacySmallAnnual = (float) $methodology->get('benchmarks.legacy_small_annual');
         $legacyMidAnnual = (float) $methodology->get('benchmarks.legacy_mid_annual');
         $legacyEnterpriseAnnual = (float) $methodology->get('benchmarks.legacy_enterprise_annual');
-        if ($users <= $legacySmallLimit) {
+        $benchmarkUsers = min($users, $legacyEnterpriseAnchorUsers);
+        if ($benchmarkUsers <= $legacySmallLimit) {
             $legacyAnnual = $legacySmallAnnual;
             $legacySource = 'Legacy benchmark: small-team anchor';
-        } elseif ($users <= $legacyMidLimit) {
-            $progress = ($users - $legacySmallLimit) / ($legacyMidLimit - $legacySmallLimit);
+        } elseif ($benchmarkUsers <= $legacyMidLimit) {
+            $progress = ($benchmarkUsers - $legacySmallLimit) / ($legacyMidLimit - $legacySmallLimit);
             $legacyAnnual = $legacySmallAnnual + ($legacyMidAnnual - $legacySmallAnnual) * $progress;
             $legacySource = 'Interpolated legacy benchmark: small-team to mid-market';
         } else {
-            $progress = ($users - $legacyMidLimit) / ($legacyEnterpriseAnchorUsers - $legacyMidLimit);
+            $progress = ($benchmarkUsers - $legacyMidLimit) / ($legacyEnterpriseAnchorUsers - $legacyMidLimit);
             $legacyAnnual = $legacyMidAnnual + ($legacyEnterpriseAnnual - $legacyMidAnnual) * $progress;
             $legacySource = 'Interpolated legacy benchmark: mid-market to enterprise';
         }

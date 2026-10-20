@@ -151,19 +151,44 @@ class ConfigurationMigration
 
     private static function normalize_savings_inputs($wpdb, string $prefix): void
     {
-        $tool_question_id = (int) $wpdb->get_var($wpdb->prepare("SELECT id FROM {$prefix}library_questions WHERE question_key=%s LIMIT 1", 'tools_or_platforms_pr_software'));
-        if ($tool_question_id) {
+        $tool_question = $wpdb->get_row($wpdb->prepare(
+            "SELECT id,option_group_id,validation FROM {$prefix}library_questions WHERE question_key=%s LIMIT 1",
+            'tools_or_platforms_pr_software'
+        ), ARRAY_A);
+        if ($tool_question) {
+            $validation = json_decode($tool_question['validation'] ?? '', true);
+            $validation = is_array($validation) ? $validation : [];
+            $group_ids = array_values(array_unique(array_filter(array_map('absint', (array) ($validation['option_group_ids'] ?? [])))));
+            $primary_group_id = absint($tool_question['option_group_id'] ?? 0);
+            if ($primary_group_id && !in_array($primary_group_id, $group_ids, true)) {
+                $group_ids[] = $primary_group_id;
+            }
+            $validation['calculation_role'] = 'software_savings';
+            if ($group_ids) {
+                $validation['option_group_ids'] = $group_ids;
+            }
             $wpdb->update($prefix . 'library_questions', [
                 'type' => 'multiple_choice',
-                'validation' => wp_json_encode(['calculation_role' => 'software_savings', 'option_group_ids' => [21, 22, 23]]),
+                'validation' => wp_json_encode($validation),
                 'calculation_eligible' => 1,
-            ], ['id' => $tool_question_id]);
+            ], ['id' => (int) $tool_question['id']]);
         }
-        $wpdb->query($wpdb->prepare("UPDATE {$prefix}questions SET type='multiple_choice', validation=%s, calculation_eligible=1 WHERE question_key=%s", wp_json_encode(['calculation_role' => 'software_savings', 'option_group_ids' => [21, 22, 23]]), 'tools_or_platforms_pr_software'));
+        $stage_questions = $wpdb->get_results($wpdb->prepare(
+            "SELECT id,validation FROM {$prefix}questions WHERE question_key=%s",
+            'tools_or_platforms_pr_software'
+        ), ARRAY_A);
+        foreach ((array) $stage_questions as $stage_question) {
+            $validation = json_decode($stage_question['validation'] ?? '', true);
+            $validation = is_array($validation) ? $validation : [];
+            $validation['calculation_role'] = 'software_savings';
+            $wpdb->update($prefix . 'questions', [
+                'type' => 'multiple_choice',
+                'validation' => wp_json_encode($validation),
+                'calculation_eligible' => 1,
+            ], ['id' => (int) $stage_question['id']]);
+        }
 
         $wpdb->update($prefix . 'option_groups', ['description' => 'Competitor pricing values are managed in Calculation Methodology.'], ['id' => 21], ['%s'], ['%d']);
-        $wpdb->query("DELETE FROM {$prefix}library_options WHERE group_id IN (22,23) AND option_key <> 'none_not_sure'");
-        $wpdb->query("DELETE FROM {$prefix}library_options WHERE group_id=21 AND option_key IN ('prowly','agility_pr')");
     }
 
     private static function ensure_organization_question($wpdb, string $prefix): void

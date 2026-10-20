@@ -75,6 +75,7 @@ class Routes
     register_rest_route('eponymos/v1', '/admin/stages/(?P<stage_id>\d+)/import-library-question/(?P<id>\d+)', ['methods' => 'POST', 'callback' => [$this, 'import_library_question'], 'permission_callback' => [$this, 'can_manage']]);
     register_rest_route('eponymos/v1', '/submit-stage', ['methods' => 'POST', 'callback' => [$this, 'submit_stage_safe'], 'permission_callback' => '__return_true']);
     register_rest_route('eponymos/v1', '/report/(?P<id>\d+)/pdf', ['methods' => 'GET', 'callback' => [$this, 'download_report_pdf'], 'permission_callback' => '__return_true']);
+    register_rest_route('eponymos/v1', '/report/test/(?P<key>[a-f0-9]{12})/pdf', ['methods' => 'GET', 'callback' => [$this, 'download_test_report_pdf'], 'permission_callback' => '__return_true']);
     // register_rest_route('eponymos/v1', '/report/(?P<id>\d+)/preview', ['methods' => 'GET', 'callback' => [$this, 'preview_report_html'], 'permission_callback' => '__return_true']);
     register_rest_route('eponymos/v1', '/report/(?P<id>\d+)/preview', ['methods' => 'GET', 'callback' => [$this, 'preview_report_html'], 'permission_callback' => [$this, 'can_preview_report'],]);
   }
@@ -151,6 +152,116 @@ class Routes
     );
   }
 
+  private function is_allowlisted_test_email(string $email): bool
+  {
+    $clean = strtolower(trim((string) $email));
+    if ($clean === '')
+      return false;
+    $allowlist = get_option('eponymos_test_email_allowlist', 'blahblah@blahblah.com, test@email.com');
+    foreach (preg_split('/[\r\n,]+/', (string) $allowlist, -1, PREG_SPLIT_NO_EMPTY) as $candidate) {
+      if (strtolower(trim((string) $candidate)) === $clean)
+        return true;
+    }
+    return false;
+  }
+
+  private function build_test_submission_snapshot(array $structure, array $answers, array $calc, array $pricing, string $email): array
+  {
+    $details = [];
+    foreach (($structure['stages'] ?? []) as $stage) {
+      foreach (($stage['questions'] ?? []) as $question) {
+        $key = (string) ($question['question_key'] ?? '');
+        if ($key === '' || !array_key_exists($key, $answers))
+          continue;
+        $value = $answers[$key];
+        $labels = [];
+        $option_lookup = [];
+        foreach ((array) ($question['options'] ?? []) as $option) {
+          $option_key = (string) ($option['option_key'] ?? '');
+          if ($option_key !== '')
+            $option_lookup[$option_key] = (string) ($option['label'] ?? $option_key);
+        }
+        foreach ((array) ($question['option_groups'] ?? []) as $group) {
+          foreach ((array) ($group['options'] ?? []) as $option) {
+            $option_key = (string) ($option['option_key'] ?? '');
+            if ($option_key !== '')
+              $option_lookup[$option_key] = (string) ($option['label'] ?? $option_key);
+          }
+        }
+        if (is_array($value)) {
+          $labels = array_values(array_map(static fn($item) => $option_lookup[(string) $item] ?? (string) $item, $value));
+        } elseif ($value !== '' && array_key_exists((string) $value, $option_lookup)) {
+          $labels = [(string) $option_lookup[(string) $value]];
+        } else {
+          $labels = [$value];
+        }
+        $details[] = [
+          'question_key' => $key,
+          'question_label' => (string) ($question['label'] ?? $key),
+          'answer' => $value,
+          'answer_label' => $labels,
+        ];
+      }
+    }
+
+    return [
+      'id' => 0,
+      'questionnaire_id' => (int) ($structure['questionnaire']['id'] ?? 0),
+      'questionnaire_name' => (string) ($structure['questionnaire']['name'] ?? ''),
+      'email' => $email,
+      'answers_detail' => $details,
+      'answers' => $answers,
+      'resolved_values' => $calc['resolved_values'],
+      'calculation_inputs' => $calc['calculation_inputs'],
+      'calculation_outputs' => $calc['calculation_outputs'],
+      'pricing_result' => $pricing,
+      'created_at' => current_time('mysql'),
+      'updated_at' => current_time('mysql'),
+      'test_mode' => 'without_email',
+    ];
+  }
+
+  private function test_report_file_path(string $email): string
+  {
+    $hash = md5(strtolower(trim((string) $email)));
+    $upload_dir = wp_upload_dir();
+    return trailingslashit($upload_dir['basedir']) . 'eponymos-reports/quarto/test-report-' . substr($hash, 0, 12) . '.pdf';
+  }
+
+  private function test_report_key(string $email): string
+  {
+    return substr(md5(strtolower(trim((string) $email))), 0, 12);
+  }
+
+  private function test_report_download_url(string $email): string
+  {
+    $key = $this->test_report_key($email);
+    return add_query_arg(
+      'token',
+      rawurlencode(wp_hash('eponymos-test-report|' . $key)),
+      rest_url('eponymos/v1/report/test/' . $key . '/pdf')
+    );
+  }
+
+  private function maybe_store_test_pdf_for_email(array $structure, array $answers, array $calc, array $pricing, string $email): string
+  {
+    $path = $this->test_report_file_path($email);
+
+    try {
+      $submission = $this->build_test_submission_snapshot($structure, $answers, $calc, $pricing, $email);
+      $pdf = (new PdfReport())->render($submission);
+      if (!is_string($pdf) || $pdf === '')
+        return '';
+      if (wp_mkdir_p(dirname($path))) {
+        file_put_contents($path, $pdf);
+      }
+      return $path;
+    } catch (\Throwable $e) {
+      error_log('Eponymos test report generation failed: ' . $e->getMessage());
+      return '';
+    }
+  }
+
   private function filter_answers_for_structure(array $structure, array $answers): array
   {
     $keys = [];
@@ -176,7 +287,7 @@ class Routes
           $category = trim((string) ($group['label'] ?? ''));
           foreach ((array) ($group['options'] ?? []) as $option) {
             $optionKey = (string) ($option['option_key'] ?? '');
-            $configuredValue = $competitorCosts[$optionKey]['value'] ?? null;
+            $configuredValue = $competitorCosts[$optionKey]['value'] ?? ($option['calculation_value'] ?? null);
             if ($category
               && is_numeric($configuredValue)
               && (float) $configuredValue > 0
@@ -213,7 +324,7 @@ class Routes
         }
         foreach ($available_options as $option) {
           $optionKey = (string) ($option['option_key'] ?? '');
-          $calculation_value = $competitorCosts[$optionKey]['value'] ?? null;
+          $calculation_value = $competitorCosts[$optionKey]['value'] ?? ($option['calculation_value'] ?? null);
           if (is_numeric($calculation_value)
             && (float) $calculation_value > 0
             && in_array($optionKey, $selected, true)) {
@@ -280,7 +391,7 @@ class Routes
   private function option_group_ids_from_body(array $body): array
   {
     $ids = (array) ($body['option_group_ids'] ?? []);
-    return array_slice(array_values(array_unique(array_filter(array_map('absint', $ids)))), 0, 6);
+    return array_values(array_unique(array_filter(array_map('absint', $ids))));
   }
   public function questionnaires(WP_REST_Request $request)
   {
@@ -536,7 +647,11 @@ class Routes
     $test_mode = $this->validated_test_mode($request, $body);
     if (is_wp_error($test_mode))
       return $test_mode;
-    $email = $test_mode !== '' ? 'client@eponymos-test.invalid' : sanitize_email($body['email'] ?? '');
+    $submitted_email = sanitize_email((string) ($body['email'] ?? ''));
+    if ($this->is_allowlisted_test_email($submitted_email))
+      $test_mode = 'without_email';
+    $email = $test_mode !== '' ? 'client@eponymos-test.invalid' : $submitted_email;
+    $test_report_email = $submitted_email !== '' ? $submitted_email : $email;
     $structure = (new Repository())->structure(absint($body['questionnaire_id'] ?? 0));
     if (!$structure)
       return new WP_Error('not_found', 'Questionnaire unavailable', ['status' => 404]);
@@ -552,7 +667,13 @@ class Routes
     if ($test_mode !== '') {
       if ($test_mode === 'with_email')
         $this->send_test_submission_notification((string) $structure['questionnaire']['name'], $pricing, false);
-      return ['submission_id' => 0, 'pricing' => $pricing];
+      $test_report_file = $this->maybe_store_test_pdf_for_email($structure, $answers, $calc, $pricing, $test_report_email);
+      return [
+        'submission_id' => 0,
+        'pricing' => $pricing,
+        'report_url' => $test_report_file !== '' ? $this->test_report_download_url($test_report_email) : '',
+        'report_email' => $test_report_email,
+      ];
     }
 
     $id = (new SubmissionRepository())->save(['questionnaire_id' => $structure['questionnaire']['id'], 'questionnaire_name' => $structure['questionnaire']['name'], 'email' => $email, 'answers' => $answers, 'resolved_values' => $calc['resolved_values'], 'calculation_inputs' => $calc['calculation_inputs'], 'calculation_outputs' => $calc['calculation_outputs'], 'pricing_result' => $pricing, 'methodology_version' => $calc['methodology_version'], 'methodology_snapshot' => $calc['methodology'], 'structure' => $structure]);
@@ -677,10 +798,15 @@ class Routes
     if (is_wp_error($test_mode))
       return $test_mode;
 
+    $submitted_email = sanitize_email((string) ($body['email'] ?? ''));
+    if ($this->is_allowlisted_test_email($submitted_email))
+      $test_mode = 'without_email';
+    $test_report_email = $submitted_email !== '' ? $submitted_email : 'client@eponymos-test.invalid';
+
     $questionnaire_id = absint($body['questionnaire_id'] ?? 0);
     $stage_id = absint($body['stage_id'] ?? 0);
     $submission_id = $test_mode !== '' ? 0 : absint($body['submission_id'] ?? 0);
-    $email = $test_mode !== '' ? 'client@eponymos-test.invalid' : sanitize_email($body['email'] ?? '');
+    $email = $test_mode !== '' ? 'client@eponymos-test.invalid' : $submitted_email;
     $raw_answers = (array) ($body['answers'] ?? []);
     $all_answers = (array) ($body['all_answers'] ?? $raw_answers);
 
@@ -833,6 +959,11 @@ class Routes
         : ($calc['calculation_inputs']['monthly_price'] ?? 0),
       'next_stage' => $next_stage,
     ];
+    if ($test_mode !== '') {
+      $test_report_file = $this->maybe_store_test_pdf_for_email($calculation_structure, $calculation_answers, $calc, $pricing, $test_report_email);
+      $response['report_url'] = $test_report_file !== '' ? $this->test_report_download_url($test_report_email) : '';
+      $response['report_email'] = $test_report_email;
+    }
     // The report is available for every successfully persisted stage result;
     // the PDF itself indicates which stages contain answers.
     if ($submission) {
@@ -1227,6 +1358,30 @@ class Routes
 
     header('Content-Length: ' . strlen($pdf));
     echo $pdf;
+    exit;
+  }
+
+  public function download_test_report_pdf(WP_REST_Request $request)
+  {
+    $key = strtolower((string) $request['key']);
+    if (!preg_match('/^[a-f0-9]{12}$/', $key))
+      return new WP_Error('invalid_report_key', 'The test report link is invalid.', ['status' => 400]);
+
+    $token = sanitize_text_field((string) $request->get_param('token'));
+    $expected_token = wp_hash('eponymos-test-report|' . $key);
+    if (!$token || !hash_equals($expected_token, $token))
+      return new WP_Error('forbidden', 'This test report download link is invalid.', ['status' => 403]);
+
+    $upload_dir = wp_upload_dir();
+    $stored_file = trailingslashit($upload_dir['basedir']) . 'eponymos-reports/quarto/test-report-' . $key . '.pdf';
+    if (!is_readable($stored_file) || filesize($stored_file) < 1)
+      return new WP_Error('not_found', 'Test report not found.', ['status' => 404]);
+
+    nocache_headers();
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: attachment; filename="eponymos-test-report.pdf"');
+    header('Content-Length: ' . filesize($stored_file));
+    readfile($stored_file);
     exit;
   }
 

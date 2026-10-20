@@ -79,4 +79,56 @@ class CalculationEngineConfigTest extends TestCase
         $this->assertSame([77], $result['resolved_values']['selected_tools']);
         $this->assertSame(77.0, $result['calculation_inputs']['current_monthly_software_cost']);
     }
+
+    public function testFourthSoftwareGroupUsesItsLibraryValuesInSpendAndCategoryResults(): void
+    {
+        $structure = [
+            'stages' => [[
+                'questions' => [
+                    [
+                        'question_key' => 'active_users',
+                        'type' => 'number',
+                        'required' => true,
+                        'calculation_role' => 'active_users',
+                        'calculation_eligible' => true,
+                    ],
+                    [
+                        'question_key' => 'active_days',
+                        'type' => 'single_choice',
+                        'required' => true,
+                        'calculation_role' => 'active_days',
+                        'calculation_eligible' => true,
+                        'options' => [['option_key' => 'most_days', 'calculation_value' => 15]],
+                    ],
+                    [
+                        'question_key' => 'selected_tools',
+                        'type' => 'multiple_choice',
+                        'required' => false,
+                        'calculation_role' => 'software_savings',
+                        'calculation_eligible' => true,
+                        'option_groups' => [
+                            [
+                                'label' => 'PR Software',
+                                'options' => [['option_key' => 'cision', 'calculation_value' => 77]],
+                            ],
+                            [
+                                'label' => 'Newswires',
+                                'options' => [['option_key' => 'prnewswire_cision', 'calculation_value' => 580]],
+                            ],
+                        ],
+                    ],
+                ],
+            ]],
+        ];
+
+        $result = (new CalculationEngine())->resolve($structure, [
+            'active_users' => '12',
+            'active_days' => 'most_days',
+            'selected_tools' => ['prnewswire_cision'],
+        ], new Methodology());
+
+        $this->assertSame([580], $result['resolved_values']['selected_tools']);
+        $this->assertSame(580.0, $result['calculation_inputs']['current_monthly_software_cost']);
+        $this->assertContains('Newswires', $result['calculation_inputs']['selected_software_categories']);
+    }
 }

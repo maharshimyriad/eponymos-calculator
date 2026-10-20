@@ -4,7 +4,7 @@ namespace Eponymos\Database;
 
 class SoftwareToolPricingMigration
 {
-    const VERSION = '1.0.3';
+    const VERSION = '1.0.4';
 
     public static function run(): void
     {
@@ -47,7 +47,16 @@ class SoftwareToolPricingMigration
         foreach ($groups as $group_id => $group) {
             $wpdb->update($prefix . 'option_groups', ['description' => $group['description']], ['id' => $group_id], ['%s'], ['%d']);
             foreach ($group['options'] as $position => $option) {
-                $wpdb->replace($prefix . 'library_options', [
+                $existing_option = $wpdb->get_var($wpdb->prepare(
+                    "SELECT id FROM {$prefix}library_options WHERE group_id=%d AND option_key=%s LIMIT 1",
+                    $group_id,
+                    $option[1]
+                ));
+                if ($existing_option) {
+                    continue;
+                }
+
+                $wpdb->insert($prefix . 'library_options', [
                     'group_id' => $group_id,
                     'label' => $option[0],
                     'option_key' => $option[1],

@@ -45,8 +45,10 @@
                     foreach (($question['options'] ?? []) as $option) {
                         $optionKey = (string) ($option['option_key'] ?? '');
                         $calculationValue = $option['calculation_value'] ?? null;
-                        if ($role === 'active_days' || $role === 'software_savings') {
+                        if ($role === 'active_days') {
                             $calculationValue = $configuredOptionValues[$optionKey] ?? '';
+                        } elseif ($role === 'software_savings') {
+                            $calculationValue = $configuredOptionValues[$optionKey] ?? $calculationValue ?? '';
                         }
                         if ($calculationValue === '' || $calculationValue === null) continue;
                         $options[$optionKey] = $calculationValue;
@@ -55,8 +57,10 @@
                         foreach (($group['options'] ?? []) as $option) {
                             $optionKey = (string) ($option['option_key'] ?? '');
                             $calculationValue = $option['calculation_value'] ?? null;
-                            if ($role === 'active_days' || $role === 'software_savings') {
+                            if ($role === 'active_days') {
                                 $calculationValue = $configuredOptionValues[$optionKey] ?? '';
+                            } elseif ($role === 'software_savings') {
+                                $calculationValue = $configuredOptionValues[$optionKey] ?? $calculationValue ?? '';
                             }
                             if ($calculationValue === '' || $calculationValue === null) continue;
                             $options[$optionKey] = $calculationValue;
@@ -97,7 +101,7 @@
                 }
             }
 
-            $methodology_inputs = $this->build_methodology_inputs($structure, $inputs, $methodology);
+            $methodology_inputs = $this->build_methodology_inputs($structure, $inputs, $methodology, $answers);
             if (is_wp_error($methodology_inputs)) return $methodology_inputs;
             $outputs = (new ReportMethodology())->calculate($methodology_inputs);
             if (is_wp_error($outputs)) return $outputs;
@@ -111,7 +115,7 @@
             ];
         }
 
-        private function build_methodology_inputs(array $structure, array $inputs, Methodology $methodology)
+        private function build_methodology_inputs(array $structure, array $inputs, Methodology $methodology, array $answers = [])
         {
             $roles = $this->configured_roles($structure);
 
@@ -154,7 +158,7 @@
                 'social_media_tools' => (float) $methodology->get('software_categories.social_media_tools', 0),
                 'digital_asset_management' => (float) $methodology->get('software_categories.digital_asset_management', 0),
             ];
-            $selected_categories = $this->selected_software_categories($structure, $inputs, $roles['software_savings'], $methodology);
+            $selected_categories = $this->selected_software_categories($structure, $answers, $roles['software_savings'], $methodology);
             $pricing = (new PricingService())->calculate([
                 'active_users' => $users,
                 'maximum_self_serve_users' => $maximum_self_serve_users,
@@ -198,10 +202,10 @@
          * Roles are stored in the question's validation JSON as calculation_role.
         * active_users and software_savings are optional — default to '' (unmapped).
         */
-        private function selected_software_categories(array $structure, array $inputs, string $software_key, Methodology $methodology): array
+        private function selected_software_categories(array $structure, array $answers, string $software_key, Methodology $methodology): array
         {
-            if ($software_key === '' || !array_key_exists($software_key, $inputs)) return [];
-            $selected = array_map('strval', (array) $inputs[$software_key]);
+            if ($software_key === '' || !array_key_exists($software_key, $answers)) return [];
+            $selected = array_map('strval', (array) $answers[$software_key]);
             $categories = [];
             foreach (($structure['stages'] ?? []) as $stage) {
                 foreach (($stage['questions'] ?? []) as $question) {
@@ -211,7 +215,7 @@
                         if ($category === '') continue;
                         foreach ((array)($group['options'] ?? []) as $option) {
                             $option_key = (string) ($option['option_key'] ?? '');
-                            $calculation_value = $methodology->get('competitor_costs.' . $option_key . '.value');
+                            $calculation_value = $methodology->get('competitor_costs.' . $option_key . '.value', $option['calculation_value'] ?? null);
                             if (is_numeric($calculation_value)
                                 && (float) $calculation_value > 0
                                 && in_array((string)($option['option_key'] ?? ''), $selected, true)) {

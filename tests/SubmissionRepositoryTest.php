@@ -1,6 +1,7 @@
 <?php
 
 namespace Eponymos\Tests {
+    use Eponymos\Admin\ThemeSettingsIntegration;
     use Eponymos\Submission\Repository;
     use PHPUnit\Framework\TestCase;
 
@@ -106,6 +107,15 @@ namespace Eponymos\Tests {
             $this->assertSame('test_submission_not_persisted', $result->get_error_code());
             $this->assertSame(0, $wpdb->queryCalls);
         }
+
+        public function testTestEmailAllowlistSanitizesAndKeepsDefaultQaAddresses(): void
+        {
+            $settings = new ThemeSettingsIntegration();
+
+            $result = $settings->sanitize_test_email_allowlist(" test@email.com, BLAHBLAH@BLAHBLAH.com\nqa@example.com ");
+
+            $this->assertSame('test@email.com, blahblah@blahblah.com, qa@example.com', $result);
+        }
     }
 }
 
@@ -133,6 +143,19 @@ namespace Eponymos\Submission {
     function sanitize_key($key)
     {
         return strtolower(str_replace(' ', '_', trim((string) $key)));
+    }
+
+    function is_email($email)
+    {
+        return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+    }
+
+    function get_option($name, $default = null)
+    {
+        if ($name === 'eponymos_test_email_allowlist') {
+            return 'blahblah@blahblah.com, test@email.com';
+        }
+        return $default;
     }
 
     function wp_json_encode($value)
@@ -182,6 +205,19 @@ namespace {
     function sanitize_key($key)
     {
         return strtolower(str_replace(' ', '_', trim((string) $key)));
+    }
+
+    function is_email($email)
+    {
+        return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+    }
+
+    function get_option($name, $default = null)
+    {
+        if ($name === 'eponymos_test_email_allowlist') {
+            return 'blahblah@blahblah.com, test@email.com';
+        }
+        return $default;
     }
 
     function wp_json_encode($value)

@@ -422,7 +422,7 @@ class PdfReport
                                 $map[$question_key][$key] = [
                                     'group' => $name,
                                     'calculation_value' => $calculation_role === 'software_savings'
-                                        ? ($competitorCosts[$key]['value'] ?? null)
+                                        ? ($competitorCosts[$key]['value'] ?? ($option['calculation_value'] ?? null))
                                         : ($option['calculation_value'] ?? null),
                                     'calculation_role' => $calculation_role,
                                 ];
