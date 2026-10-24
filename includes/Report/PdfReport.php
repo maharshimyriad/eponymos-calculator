@@ -97,7 +97,10 @@ class PdfReport
                 <tr>
                     <td style="padding: 7mm 16mm; vertical-align: middle;">
                         Your Full PR Tech Needs Report<br>
-                        Prepared exclusively for <span style="font-family: poppinssemibold;font-weight: 400; color: #fff;">' . $this->esc($this->organisation_name($submission)) . '</span>
+                        Prepared exclusively for <span style="font-family: poppinssemibold;font-weight: 400; color: #fff;">' . $this->esc($this->organisation_name($submission)) . '</span>'
+            . (($submission['test_mode'] ?? '') === 'without_email' && !empty($submission['email'])
+                ? '<br><span style="font-size: 8pt;">Test email: ' . $this->esc($submission['email']) . '</span>'
+                : '') . '
                     </td>
                     <td style="padding: 7mm 16mm; text-align: right; width: 35%; vertical-align: middle;">
                         ' . ($logo !== '' ? '<img src="' . $this->esc_attr($logo) . '" alt="Eponymos" style="display: inline-block; width: 44mm; height: auto; border: 0; margin: 0; padding: 0;" />' : '') . '

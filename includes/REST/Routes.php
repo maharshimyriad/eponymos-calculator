@@ -4,6 +4,7 @@ namespace Eponymos\REST;
 
 use WP_REST_Request;
 use WP_Error;
+use Eponymos\BigQuery\SubmissionClient;
 use Eponymos\Questionnaire\Repository;
 use Eponymos\Questionnaire\Validator;
 use Eponymos\Calculation\CalculationEngine;
@@ -238,7 +239,7 @@ class Routes
     $key = $this->test_report_key($email);
     return add_query_arg(
       'token',
-      rawurlencode(wp_hash('eponymos-test-report|' . $key)),
+      wp_hash('eponymos-test-report|' . $key),
       rest_url('eponymos/v1/report/test/' . $key . '/pdf')
     );
   }
@@ -252,9 +253,18 @@ class Routes
       $pdf = (new PdfReport())->render($submission);
       if (!is_string($pdf) || $pdf === '')
         return '';
-      if (wp_mkdir_p(dirname($path))) {
-        file_put_contents($path, $pdf);
+      if (!wp_mkdir_p(dirname($path))) {
+        error_log('Eponymos test report generation failed: could not create the report directory.');
+        return '';
       }
+      $written = file_put_contents($path, $pdf, LOCK_EX);
+      if ($written === false || $written !== strlen($pdf)) {
+        error_log('Eponymos test report generation failed: the PDF could not be written completely.');
+        return '';
+      }
+      clearstatcache(true, $path);
+      if (!is_readable($path) || filesize($path) < 1)
+        return '';
       return $path;
     } catch (\Throwable $e) {
       error_log('Eponymos test report generation failed: ' . $e->getMessage());
@@ -681,6 +691,9 @@ class Routes
       return $id;
     if (!$id)
       return new WP_Error('submission_failed', 'Submission was not stored.', ['status' => 500]);
+    $submission = (new SubmissionRepository())->find((int) $id);
+    if ($submission)
+      (new SubmissionClient())->send($submission);
     $this->queue_submission_notification((int) $id, false);
     return ['submission_id' => (int) $id, 'pricing' => $pricing];
   }
@@ -943,6 +956,8 @@ class Routes
     $submission = $submission_id ? (new SubmissionRepository())->find($submission_id) : null;
     if ($submission_id && $test_mode === '')
       $this->queue_submission_notification((int) $submission_id, $is_followup_stage);
+    if ($submission)
+      (new SubmissionClient())->send($submission);
 
     $response = [
       'submission_id' => (int) $submission_id,

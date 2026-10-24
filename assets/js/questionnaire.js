@@ -332,6 +332,7 @@
         '<button type="button" class="eponymos-btn eponymos-btn--ghost" data-review-stage="0">Review Stage 1 answers</button>' +
         '<button type="button" class="eponymos-btn eponymos-btn--ghost" data-review-stage="' + esc(stageIndex) + '">Review Stage 2 answers</button>' +
         '</div>';
+      html += '<div class="eponymos-new-estimate-actions"><button type="button" class="eponymos-btn eponymos-new-estimate-button" data-start-new-estimate><span class="dashicons dashicons-update" aria-hidden="true"></span>Start a new estimate</button></div>';
       container.innerHTML = html;
     }
 
@@ -527,6 +528,7 @@
         html += '<button type="button" class="eponymos-btn eponymos-btn--ghost" data-review-stage="' + esc(stageIndex) + '">Review Stage ' + esc(stageIndex + 1) + ' answers</button>';
       }
       html += '</div>';
+      html += '<div class="eponymos-new-estimate-actions"><button type="button" class="eponymos-btn eponymos-new-estimate-button" data-start-new-estimate><span class="dashicons dashicons-update" aria-hidden="true"></span>Start a new estimate</button></div>';
 
       html += '</div>';
       container.innerHTML = html;
@@ -949,6 +951,29 @@
       } catch (e) { }
     };
 
+    QuestionnaireOrchestrator.prototype._startNewEstimate = function () {
+      var questionnaireId = String(this.questionnaire.id);
+      var keys = [
+        'eponymos_answers_' + questionnaireId,
+        'eponymos_email_' + questionnaireId,
+        'eponymos_submission_id_' + questionnaireId,
+        'eponymos_questionnaire_stage_' + questionnaireId,
+        'eponymos_questionnaire_question_' + questionnaireId,
+        'eponymos_questionnaire_screen_' + questionnaireId,
+        'eponymos_questionnaire_result_' + questionnaireId
+      ];
+      this.stages.forEach(function (stage) {
+        keys.push('eponymos_answers_stage_' + stage.id);
+      });
+
+      keys.forEach(function (key) {
+        try { localStorage.removeItem(key); } catch (e) { }
+      });
+
+      this.submissionId = 0;
+      this._startStage(0, 0);
+    };
+
     QuestionnaireOrchestrator.prototype.start = function () {
       if (!this.stages.length) {
         this.progressEl.textContent = 'This questionnaire has no active stages.';
@@ -1067,6 +1092,12 @@
           var targetStage = self.stages[targetIndex];
           var targetQuestions = targetStage && Array.isArray(targetStage.questions) ? targetStage.questions : [];
           self._startStage(targetIndex, 0);
+        });
+      });
+
+      container.querySelectorAll('[data-start-new-estimate]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          self._startNewEstimate();
         });
       });
 
